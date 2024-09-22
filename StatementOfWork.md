@@ -18,11 +18,11 @@ in python. There will be a server which allows up to two clients to connect to i
 required to be two clients connected to start a game.
 * Invalid game state, or illegal game moves will not be allowed by server. If an unexpected 
 error is encountered, the server gracefully shuts down.
-* Simple GUI made using Pygame.
+* Simple GUI through a web-based interface
 * CLI inputs and options. For client (-h help, -i IP of server, -p port of server, -n DNS name of server). For server (-h help, -i host-ip, -p port)
 
 #### Exclusions:
-* Web based interface will not be included.
+
 * save state will not be included.
 
 ### Deliverables:
@@ -68,7 +68,8 @@ error is encountered, the server gracefully shuts down.
 * Git
 * Vim
 * Unix-based OS
-* Python libraries (pygame, sockets, etc std libraries)
+* Python libraries (sockets, etc std libraries)
+* HTML, CSS, Javascript to handle webUI.
 
 ### Assumptions:
 
