@@ -1,6 +1,6 @@
 # Connect-Four Game Example
 
-This is a simple Connect-Four game implemented using Python and sockets.
+This is a simple Connect-Four game implemented using Python and sockets. The GUI is provided by PyGame
 
 **How to play:**
 1. **Start the server:** Run the `server.py` script.
@@ -12,6 +12,8 @@ This is a simple Connect-Four game implemented using Python and sockets.
 * Sockets
 
 **Additional resources:**
-* [Link to Python documentation]
-* [Link to sockets tutorial]
+* [Statement of Work](https://github.com/ryanmartel/ConnectFour/wiki/Statement-of-Work)
+* [Python documentation](https://docs.python.org/3/)
+* [sockets tutorial](https://docs.python.org/3/howto/sockets.html)
+* [Pygame](https://www.pygame.org/news)
     
