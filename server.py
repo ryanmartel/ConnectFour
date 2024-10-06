@@ -49,7 +49,7 @@ def main():
 
 def accept_wrapper(sock):
     conn, addr = sock.accept()
-    logger.info("Accepted connection from "+addr)
+    logger.info(f"Accepted connection from {addr}")
     conn.setblocking(False)
 
 if __name__ == '__main__':
