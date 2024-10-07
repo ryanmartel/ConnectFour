@@ -2,12 +2,15 @@ import logging
 import sys
 import selectors
 import socket
+import traceback
+
+from server_lib.message import Message
 
 logger = logging.getLogger('CONNECT-FOUR SERVER')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
+ch.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
@@ -40,7 +43,7 @@ def main():
                     try:
                         message.process_events(mask)
                     except Exception:
-                        logger.error("Error: exception for ")
+                        logger.error(f"Error: exception for {message.addr}:\n{traceback.format_exc()}")
                         message.close()
     except KeyboardInterrupt:
         logger.info("Caught keyboard interrupt, exiting")
@@ -51,6 +54,8 @@ def accept_wrapper(sock):
     conn, addr = sock.accept()
     logger.info(f"Accepted connection from {addr}")
     conn.setblocking(False)
+    message = Message(sel, conn, addr, logger)
+    sel.register(conn, selectors.EVENT_READ, data=message)
 
 if __name__ == '__main__':
     main()

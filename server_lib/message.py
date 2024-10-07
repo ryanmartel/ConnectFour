@@ -3,6 +3,7 @@ import selectors
 import json
 import io
 import struct
+import time
 
 class Message:
     def __init__(self, selector, sock, addr, logger):
@@ -87,19 +88,27 @@ class Message:
         return message
 
     def _create_response_json_content(self):
-        action = self.request.get("action")
-        if action == "ping":
-            answer = "pong"
-            content = {"result": answer}
+        if self.request:
+            action = self.request.get("action")
+            if action == "ping":
+                answer = "pong"
+                content = {"result": answer}
+                content_encoding = "utf-8"
+                response = {
+                    "content_bytes": self._json_encode(content, content_encoding),
+                    "content_type": "text/json",
+                    "content_encoding": content_encoding,
+                }
+                return response
         else:
-            content = {"result": f'Error: invalid action "{action}".'}
-        content_encoding = "utf-8"
-        response = {
-            "content_bytes": self._json_encode(content, content_encoding),
-            "content_type": "text/json",
-            "content_encoding": content_encoding,
-        }
-        return response
+            content = {"result": f'Error: invalid action.'}
+            content_encoding = "utf-8"
+            response = {
+                "content_bytes": self._json_encode(content, content_encoding),
+                "content_type": "text/json",
+                "content_encoding": content_encoding,
+            }
+            return response
 
     def process_events(self, mask):
         if mask & selectors.EVENT_READ:
@@ -122,9 +131,8 @@ class Message:
                 self.process_request()
 
     def write(self):
-        if self.request:
-            if not self.response_created:
-                self.create_response()
+        if not self.response_created:
+            self.create_response()
 
         self._write()
 
@@ -176,18 +184,18 @@ class Message:
         if self.header["content-type"] == "text/json":
             encoding = self.header["content-encoding"]
             self.request = self._json_decode(data, encoding)
-            self.logger.debug(f"received response {repr(self.response)} from {self.addr}")
+            self.logger.debug(f"received request {repr(self.request)} from {self.addr}")
         else:
             # unknown content-type
-            self.request = data
-            self.logger.warning(f"recieved unknown format response from {self.addr}")
+            # self.request = data
+            self.logger.warning(f"recieved unknown format request from {self.addr}")
         # Set selector to listen for write events, we're done reading.
         self._set_selector_events_mask("w")
 
     def create_response(self):
-        if self.header["content-type"] == "text/json":
-            response = self._create_response_json_content()
-            message = self._create_message(**response)
-            self.response_created = True
-            self._buffer_out += message
+        response = self._create_response_json_content()
+        message = self._create_message(**response)
+        self.response_created = True
+        self._buffer_out += message
+
 

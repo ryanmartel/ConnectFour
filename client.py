@@ -2,14 +2,16 @@ import logging
 import sys
 import socket
 import selectors
+import traceback
 
+from client_lib.message import Message
 
 
 logger = logging.getLogger('CONNECT-FOUR CLIENT')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
+ch.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
@@ -44,21 +46,21 @@ def main():
     sock.setblocking(False)
     sock.connect_ex(addr)
     events = selectors.EVENT_READ | selectors.EVENT_WRITE
-    message = client.Message(sel, sock, addr, request, logger)
-    sel.register(sock, events, data=None)
+    message = Message(sel, sock, addr, request, logger)
+    sel.register(sock, events, data=message)
 
     try:
         while True:
-            events = sel.select(timeout=None)
+            events = sel.select(timeout=1)
             for key, mask in events:
-                if key.data is None:
-                    continue
                 message = key.data
                 try:
                     message.process_events(mask)
                 except Exception:
-                    logger.error("Error: excetion for ")
+                    logger.error(f"Error: exception for {message.addr}:\n{traceback.format_exc()}")
                     message.close()
+            if not sel.get_map():
+                break
     except KeyboardInterrupt:
         logger.info("Caught keyboard interrupt, exiting")
     finally:

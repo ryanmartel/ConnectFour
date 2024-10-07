@@ -83,6 +83,7 @@ class Message:
     def _process_json_response(self):
         content = self.response
         result = content.get("result")
+        print(result)
 
     def process_events(self, mask):
         if mask & selectors.EVENT_READ:
