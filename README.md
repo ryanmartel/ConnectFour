@@ -8,7 +8,8 @@ starting `client.py` with `host port ping` will return the response `pong` to th
 return a graceful error response and exit the client.  
 
 Logging is implemented and while in development is set to DEBUG mode. This will show the raw message contents both sent and 
-received on the server and client
+received on the server and client. This will also show tracebacks from exceptions which would otherwise be presented in a 
+more user friendly manner.
 
 **How to play:**
 1. **Start the server:** Run the `server.py` script.
