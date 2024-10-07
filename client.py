@@ -4,6 +4,7 @@ import socket
 import selectors
 
 
+
 logger = logging.getLogger('CONNECT-FOUR CLIENT')
 logger.setLevel(logging.INFO)
 
@@ -16,19 +17,34 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 sel = selectors.DefaultSelector()
 
+def create_request(action):
+    if action == "ping":
+        return dict(
+                type="text/json",
+                encoding="utf-8",
+                content=dict(action=action)
+                )
+    else:
+        return dict(
+                type="binary/custom-binary",
+                encoding="binary",
+                content=bytes(action, encoding="utf-8"),
+                )
 def main():
-    if len(sys.argv) != 3:
-        print("usage:", sys.argv[0], "<host> <port>")
+    if len(sys.argv) != 4:
+        print("usage:", sys.argv[0], "<host> <port> <action>")
         sys.exit(1)
 
     host, port = sys.argv[1], int(sys.argv[2])
+    action = sys.argv[3]
+    request = create_request(action)
     addr = (host, port)
     logger.info(f"starting connection -> {host}, port: {port}")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setblocking(False)
     sock.connect_ex(addr)
     events = selectors.EVENT_READ | selectors.EVENT_WRITE
-    # ADD MESSAGE
+    message = client.Message(sel, sock, addr, request, logger)
     sel.register(sock, events, data=None)
 
     try:

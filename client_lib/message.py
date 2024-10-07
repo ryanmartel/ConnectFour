@@ -3,7 +3,7 @@ import io
 import selectors
 import struct
 import sys
-    
+
 class Message:
     def __init__(self, selector, sock, addr, request, logger):
         self.selector = selector
