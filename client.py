@@ -40,6 +40,10 @@ class Client:
 
             json_msg = json.loads(msg)
             self.logger.debug(f'Received {json_msg} from server')
+            # Exceeds max allowed player count
+            if json_msg.get("result") == "connection" and json_msg.get("status") == "refused":
+                self.logger.error('Too Many clients currently in game. Max allowed is 2')
+                os._exit(1)
 
 
     def repl(self):

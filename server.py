@@ -5,6 +5,7 @@ import socket
 import json
 
 from server_lib import action
+from server_lib.game import Game
 
 class Server:
     def __init__(self, port, log_level):
@@ -36,6 +37,13 @@ class Server:
     def accept_conn(self, sock):
         conn, addr = sock.accept()
         self.logger.info(f'Accepted client connection from host: {addr[0]}, port: {addr[1]}')
+
+        if len(self.connected_clients) == 2:
+            self.logger.warning(f'Too many clients! only two players are allowed. Removing last added client')
+            conn.sendall(action.connection_refuse())
+            conn.close()
+            return
+
         self.connected_clients[conn] = addr
         self.read_sel.register(conn, selectors.EVENT_READ, self.receive)
         self.write_sel.register(conn, selectors.EVENT_WRITE)

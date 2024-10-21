@@ -29,6 +29,7 @@ def connection_end(addr):
             }
     return bytes(json.dumps(data), encoding="utf-8")
 
+
 # Responses
 
 def move(status):
@@ -41,6 +42,20 @@ def move(status):
 def ping():
     data = {
             "result": "pong"
+            }
+    return bytes(json.dumps(data), encoding="utf-8")
+
+def connection_refuse():
+    data = {
+            "result": "connection",
+            "status": "refused",
+            }
+    return bytes(json.dumps(data), encoding="utf-8")
+
+def connection():
+    data = {
+            "result": "connection",
+            "status": "connected",
             }
     return bytes(json.dumps(data), encoding="utf-8")
 
