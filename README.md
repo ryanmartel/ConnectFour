@@ -11,6 +11,15 @@ Logging is implemented and while in development is set to DEBUG mode. This will 
 received on the server and client. This will also show tracebacks from exceptions which would otherwise be presented in a 
 more user friendly manner.
 
+**Game Message Protocol**
+All messages are passed over json. The command type is sent using the action field. additional fields may be present depending on the selected action. 
+For example, a move action will also contain a field with the location of the move. The response sent from the server will contain a result field. 
+This result field gives if the action was accepted or an error occurred.  
+The server is also able to send broadcast messages to the client. these messages from the server use a broadcast field to either give clients changes to the game state or information
+about other clients connecting or disconnecting.  
+Upon connection, clients send a connect message to the server. The server then registers the client connection and returns a connected successfully message to the client.  
+
+
 **How to play:**
 1. **Start the server:** Run the `server.py` script.
 2. **Connect clients:** Run the `client.py` script on two different machines or terminals.
