@@ -2,71 +2,64 @@ import logging
 import sys
 import socket
 import selectors
-import traceback
+import threading
+import os
+import json
 
-from client_lib.message import Message
+from client_lib import action
 
 
-logger = logging.getLogger('CONNECT-FOUR CLIENT')
-logger.setLevel(logging.DEBUG)
+class Client:
+    def __init__(self, log_level, addr):
+        # Logger options
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
 
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+        self.logger = logging.getLogger('CONNECT-FOUR CLIENT')
+        self.logger.setLevel(log_level)
+        self.logger.addHandler(ch)
+        self.addr = addr
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sel = selectors.DefaultSelector()
 
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-
-logger.addHandler(ch)
-sel = selectors.DefaultSelector()
-
-def create_request(action):
-    if action == "ping":
-        return dict(
-                type="text/json",
-                encoding="utf-8",
-                content=dict(action=action)
-                )
-    else:
-        return dict(
-                type="binary/custom-binary",
-                encoding="binary",
-                content=bytes(action, encoding="utf-8"),
-                )
-def main():
-    if len(sys.argv) != 4:
-        print("usage:", sys.argv[0], "<host> <port> <action>")
-        sys.exit(1)
-
-    host, port = sys.argv[1], int(sys.argv[2])
-    action = sys.argv[3]
-    request = create_request(action)
-    addr = (host, port)
-    logger.info(f"starting connection -> {host}, port: {port}")
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setblocking(False)
-    sock.connect_ex(addr)
-    events = selectors.EVENT_READ | selectors.EVENT_WRITE
-    message = Message(sel, sock, addr, request, logger)
-    sel.register(sock, events, data=message)
-
-    try:
+    def connect(self):
+        self.logger.info(f"Connecting to host: {self.addr[0]}, port: {self.addr[1]}")
+        self.sock.connect(self.addr)
+        self.sock.sendall(action.connect())
+        cin = threading.Thread(target=self.repl)
+        cin.start()
         while True:
-            events = sel.select(timeout=1)
-            for key, mask in events:
-                message = key.data
-                try:
-                    message.process_events(mask)
-                except Exception:
-                    logger.error(f"Error: exception for {message.addr}:\n{traceback.format_exc()}")
-                    message.close()
-            if not sel.get_map():
-                break
-    except KeyboardInterrupt:
-        logger.info("Caught keyboard interrupt, exiting")
-    finally:
-        sel.close()
-    
+            msg = self.sock.recv(1024).decode("utf-8")
+
+            # Server has unexpectadly closed
+            if not msg:
+                self.logger.error(f'Server connection was lost! exiting...')
+                os._exit(1)
+
+            json_msg = json.loads(msg)
+            self.logger.debug(f'Received {json_msg} from server')
+
+
+    def repl(self):
+        while True:
+            msg = input('>>> ')
+            if msg == "exit":
+                os._exit(0)
+            elif msg == "ping":
+                self.sock.sendall(action.ping())
+            else:
+                print(msg)
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) != 3:
+        print("usage:", sys.argv[0], "<host> <port>")
+        sys.exit(1)
+    try:
+        client = Client(logging.DEBUG, (sys.argv[1], int(sys.argv[2])))
+        client.connect()
+    except ValueError:
+        print('Invalid port entered. Expected Integer')
+
 
