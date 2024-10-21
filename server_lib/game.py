@@ -3,8 +3,11 @@ class Game:
     def __init__(self):
         self.state = 0
         self.board = self.new_board()
+        self.players = {}
 
 
+    def add_player(self, player, conn):
+        self.players[player] = conn
 
     def new_board(self):
         return {

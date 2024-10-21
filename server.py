@@ -33,6 +33,12 @@ class Server:
         self.sock.listen()
         self.logger.info(f'Started Server at port {self.port}')
         self.read_sel.register(self.sock, selectors.EVENT_READ, self.accept_conn)
+        
+    def shutdown(self):
+        self.logger.info("Shutting down server")
+        for conn in self.connected_clients.keys():
+            conn.close()
+        self.sock.close()
 
     def accept_conn(self, sock):
         conn, addr = sock.accept()
@@ -86,6 +92,10 @@ if __name__ == '__main__':
     try:
         port = int(sys.argv[1])
         server = Server(port, logging.DEBUG)
-        server.run()
+        try:
+            server.run()
+        except KeyboardInterrupt:
+            print('Interrupt signal received, shutting down')
+            server.shutdown()
     except ValueError:
         print('Invalid port entered. Expected Integer')

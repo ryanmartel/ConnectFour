@@ -1,10 +1,6 @@
 import json
-import os
 
 class Action:
-
-    def __init__(self, logger):
-        self.logger = logger
 
     # Requests
     def connect(self):
@@ -40,17 +36,16 @@ class Action:
         return bytes(json.dumps(data),encoding="utf-8")
 
 
-    def handle_message(self, message):
-        self.logger.debug(f'Received {message} from server')
+    def handle_message(self message):
         result = message.get("result")
         if result is not None:
-            self.process_result(result, message)
+            process_result(result, message)
         else:
             broadcast = message.get("broadcast")
             if broadcast is not None:
-                self.process_broadcast(broadcast, message)
+                process_broadcast(broadcast, message)
 
-    def process_result(self, result, message):
+    def process_result(result, message):
         if result == "move":
             return
         if result == "pong":
@@ -62,7 +57,7 @@ class Action:
                 os._exit(1)
 
 
-    def process_broadcast(self, broadcast, message):
+    def process_broadcast(broadcast, message):
         if broadcast == "gamestate":
             return
         if broadcast == "connection_status":

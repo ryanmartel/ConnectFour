@@ -6,7 +6,7 @@ import threading
 import os
 import json
 
-from client_lib import action
+from client_lib.action import Action
 
 
 class Client:
@@ -23,27 +23,31 @@ class Client:
         self.addr = addr
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sel = selectors.DefaultSelector()
+        self.action = Action(self.logger)
 
     def connect(self):
         self.logger.info(f"Connecting to host: {self.addr[0]}, port: {self.addr[1]}")
         self.sock.connect(self.addr)
-        self.sock.sendall(action.connect())
+        self.sock.sendall(self.action.connect())
         cin = threading.Thread(target=self.repl)
         cin.start()
         while True:
-            msg = self.sock.recv(1024).decode("utf-8")
+            self.receive()
 
-            # Server has unexpectadly closed
-            if not msg:
-                self.logger.error(f'Server connection was lost! exiting...')
-                os._exit(1)
 
-            json_msg = json.loads(msg)
-            self.logger.debug(f'Received {json_msg} from server')
-            # Exceeds max allowed player count
-            if json_msg.get("result") == "connection" and json_msg.get("status") == "refused":
-                self.logger.error('Too Many clients currently in game. Max allowed is 2')
-                os._exit(1)
+    def receive(self):
+        msg = self.sock.recv(1024).decode("utf-8")
+        # Server has unexpectadly closed
+        if not msg:
+            self.logger.error(f'Server connection was lost! exiting...')
+            os._exit(1)
+
+        json_msg = json.loads(msg)
+        self.action.handle_message(json_msg)
+        # Exceeds max allowed player count
+        if json_msg.get("result") == "connection" and json_msg.get("status") == "refused":
+            self.logger.error('Too Many clients currently in game. Max allowed is 2')
+            os._exit(1)
 
 
     def repl(self):
@@ -52,7 +56,7 @@ class Client:
             if msg == "exit":
                 os._exit(0)
             elif msg == "ping":
-                self.sock.sendall(action.ping())
+                self.sock.sendall(self.action.ping())
             else:
                 print(msg)
 
