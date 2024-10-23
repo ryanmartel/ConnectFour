@@ -1,6 +1,6 @@
 # Connect-Four Game Example
 
-This is a simple Connect-Four game implemented using Python and sockets. The GUI is provided through a simple web interface.
+This is a simple Connect-Four game implemented using Python and sockets. The GUI is provided through a curses terminal interface
 
 **Current Status:**
 Currently server.py and client.py only set up a TCP connection and send simple messages from client to server.
@@ -28,6 +28,7 @@ Upon connection, clients send a connect message to the server. The server then r
 **Technologies used:**
 * Python
 * Sockets
+* Curses
 
 **Additional resources:**
 * [Statement of Work](https://github.com/ryanmartel/ConnectFour/wiki/Statement-of-Work)

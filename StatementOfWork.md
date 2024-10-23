@@ -18,7 +18,7 @@ in python. There will be a server which allows up to two clients to connect to i
 required to be two clients connected to start a game.
 * Invalid game state, or illegal game moves will not be allowed by server. If an unexpected 
 error is encountered, the server gracefully shuts down.
-* Simple GUI through a web-based interface
+* Simple GUI through a Curses terminal interface
 * CLI inputs and options. For client (-h help, -i IP of server, -p port of server, -n DNS name of server). For server (-h help, -i host-ip, -p port)
 
 #### Exclusions:
@@ -69,12 +69,12 @@ error is encountered, the server gracefully shuts down.
 * Vim
 * Unix-based OS
 * Python libraries (sockets, etc std libraries)
-* HTML, CSS, Javascript to handle webUI.
+* Python Curses library GUI
 
 ### Assumptions:
 
 * Network connection is available between clients and server. 
-* Gui capability is available on clients
+* Terminal Curses Gui capability is available on clients
 
 ### Roles and Responsibilities:
 
