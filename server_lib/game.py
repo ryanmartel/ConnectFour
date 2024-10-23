@@ -1,13 +1,70 @@
 class Game:
 
     def __init__(self):
-        self.state = 0
+        self.state = "waiting"
         self.board = self.new_board()
-        self.players = {}
+        self.player_names = {}
+        self.player_addrs = []
+        self.connected_players = 0
+        # What turn is the game on
+        self.turn = 0
+        # Who's turn is it referenced by address
+        self.whos_move = None
 
+    def getGameState(self):
+        return self.state
 
-    def add_player(self, player, conn):
-        self.players[player] = conn
+    def isWaiting(self):
+        if self.state == "waiting":
+            return True
+        return False
+
+    def isPregame(self):
+        if self.state == "pregame":
+            return True
+        return False
+
+    def isRunning(self):
+        if self.state == "run":
+            return True
+        return False
+
+    def isFinished(self):
+        if self.state == "finished":
+            return True
+        return False
+    
+    def num_players(self):
+        return self.connected_players
+
+    def turn_count(self):
+        return self.turn_count
+
+    def next_player_turn(self):
+        return self.whos_move
+
+    def add_player(self, addr):
+        self.player_addrs.append(addr)
+        self.connected_players = self.connected_players + 1
+
+    def remove_player(self, addr):
+        self.player_names.pop(addr)
+        if addr in self.player_names:
+            self.player_addrs.remove(addr)
+            self.connected_players = self.connected_players - 1
+
+    def setPregame(self):
+        if self.isWaiting() and self.num_players() == 2:
+            self.state = "pregame"
+
+    # Using address information as key, set player's name
+    def set_player_name(self, player_name, addr):
+        self.player_names[addr] = player_name
+
+    def name(self, addr):
+        return self.player_names.get(addr)
+
+    
 
     def new_board(self):
         return {

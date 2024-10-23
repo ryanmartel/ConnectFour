@@ -7,6 +7,7 @@ import os
 import json
 
 from client_lib.action import Action
+from client_lib.tui import run
 
 
 class Client:
@@ -28,9 +29,15 @@ class Client:
     def connect(self):
         self.logger.info(f"Connecting to host: {self.addr[0]}, port: {self.addr[1]}")
         self.sock.connect(self.addr)
+        # send connection message to server
         self.sock.sendall(self.action.connect())
+        # Start Repl
         cin = threading.Thread(target=self.repl)
         cin.start()
+        # Start curses tui ui
+        ui = threading.Thread(target=run)
+        ui.start()
+        # continue to receive on this thread
         while True:
             self.receive()
 
@@ -49,7 +56,7 @@ class Client:
             self.logger.error('Too Many clients currently in game. Max allowed is 2')
             os._exit(1)
 
-
+    # This may be able to be brought into the curses interface as it can handle input without blocking
     def repl(self):
         while True:
             msg = input('>>> ')
@@ -65,6 +72,7 @@ if __name__ == '__main__':
         print("usage:", sys.argv[0], "<host> <port>")
         sys.exit(1)
     try:
+        # Change logging level here. 
         client = Client(logging.DEBUG, (sys.argv[1], int(sys.argv[2])))
         client.connect()
     except ValueError:

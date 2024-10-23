@@ -4,7 +4,7 @@ import selectors
 import socket
 import json
 
-from server_lib import action
+from server_lib.action import Action
 from server_lib.game import Game
 
 class Server:
@@ -26,6 +26,8 @@ class Server:
         self.connected_clients = {}
         self.game = Game()
 
+        self.action = Action(self.logger, self.game)
+
     def start_server(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -46,14 +48,14 @@ class Server:
 
         if len(self.connected_clients) == 2:
             self.logger.warning(f'Too many clients! only two players are allowed. Removing last added client')
-            conn.sendall(action.connection_refuse())
+            conn.sendall(self.action.connection_refuse())
             conn.close()
             return
 
         self.connected_clients[conn] = addr
         self.read_sel.register(conn, selectors.EVENT_READ, self.receive)
         self.write_sel.register(conn, selectors.EVENT_WRITE)
-        self.broadcast(action.connection_start(addr))
+        self.broadcast(self.action.connection_start(addr))
 
     def receive(self, sock):
         msg = sock.recv(1024).decode("utf-8")
@@ -64,12 +66,12 @@ class Server:
             addr = self.connected_clients.pop(sock)
             self.read_sel.unregister(sock)
             self.write_sel.unregister(sock)
-            self.broadcast(action.connection_end(addr))
+            self.broadcast(self.action.connection_end(addr))
             return
 
         json_msg = json.loads(msg)
         self.logger.debug(f'Received {json_msg} from client at {self.connected_clients.get(sock)}')
-        response = action.handle_message(json_msg)
+        response = self.action.handle_message(json_msg, self.connected_clients.get(sock))
         if response is not None:
             sock.sendall(response)
 
