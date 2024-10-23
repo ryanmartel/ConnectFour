@@ -46,12 +46,14 @@ class Game:
     def add_player(self, addr):
         self.player_addrs.append(addr)
         self.connected_players = self.connected_players + 1
+        print(f"new number of connected players! {self.connected_players}")
 
     def remove_player(self, addr):
-        self.player_names.pop(addr)
-        if addr in self.player_names:
+        # self.player_names.pop(addr)
+        if addr in self.player_addrs:
             self.player_addrs.remove(addr)
             self.connected_players = self.connected_players - 1
+        print(f"player removed... {self.connected_players}")
 
     def setPregame(self):
         if self.isWaiting() and self.num_players() == 2:

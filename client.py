@@ -71,11 +71,11 @@ if __name__ == '__main__':
     if len(sys.argv) != 3:
         print("usage:", sys.argv[0], "<host> <port>")
         sys.exit(1)
-    try:
+    # try:
         # Change logging level here. 
-        client = Client(logging.DEBUG, (sys.argv[1], int(sys.argv[2])))
-        client.connect()
-    except ValueError:
-        print('Invalid port entered. Expected Integer')
+    client = Client(logging.DEBUG, (sys.argv[1], int(sys.argv[2])))
+    client.connect()
+    # except ValueError:
+    #     print('Invalid port entered. Expected Integer')
 
 
