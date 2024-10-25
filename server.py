@@ -3,6 +3,7 @@ import sys
 import selectors
 import socket
 import json
+import struct
 
 from server_lib.action import Action
 from server_lib.game import Game
@@ -61,8 +62,20 @@ class Server:
         self.handler.broadcast(self.action.connection_start(addr))
 
     def receive(self, sock):
-        msg = sock.recv(1024).decode("utf-8")
 
+        bmsg_len = sock.recv(4)
+        # Client has closed a connection
+        if not bmsg_len:
+            self.logger.info(f'Client at {self.connected_clients.get(sock)} closed connection')
+            addr = self.connected_clients.pop(sock)
+            self.read_sel.unregister(sock)
+            self.write_sel.unregister(sock)
+            self.handler.remove_player(addr)
+            self.handler.broadcast(self.action.connection_end(addr))
+            return
+
+        msg_len = struct.unpack('<i', bmsg_len)[0]
+        msg = sock.recv(msg_len).decode("utf-8")
         # Client has closed a connection
         if not msg:
             self.logger.info(f'Client at {self.connected_clients.get(sock)} closed connection')

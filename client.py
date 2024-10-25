@@ -10,6 +10,7 @@ import json
 
 from client_lib.action import Action
 from client_lib.tui import run
+from client_lib.message_handler import MessageHandler
 
 
 class Client:
@@ -19,14 +20,16 @@ class Client:
         ch.setLevel(logging.DEBUG)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         ch.setFormatter(formatter)
-
         self.logger = logging.getLogger('CONNECT-FOUR CLIENT')
         self.logger.setLevel(log_level)
         self.logger.addHandler(ch)
+
         self.addr = addr
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sel = selectors.DefaultSelector()
+
         self.action = Action(self.logger)
+        self.handler = MessageHandler(self.logger, self.action, self.sock)
 
     def connect(self):
         self.logger.info(f"Connecting to host: {self.addr[0]}, port: {self.addr[1]}")
@@ -63,11 +66,7 @@ class Client:
             os._exit(1)
         
         json_msg = json.loads(msg)
-        self.action.handle_message(json_msg)
-        # Exceeds max allowed player count
-        if json_msg.get("result") == "connection" and json_msg.get("status") == "refused":
-            self.logger.error('Too Many clients currently in game. Max allowed is 2')
-            os._exit(1)
+        self.handler.handle_message(json_msg)
 
     # This may be able to be brought into the curses interface as it can handle input without blocking
     def repl(self):
