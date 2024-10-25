@@ -17,6 +17,7 @@ For example, a move action will also contain a field with the location of the mo
 This result field gives if the action was accepted or an error occurred.  
 The server is also able to send broadcast messages to the client. these messages from the server use a broadcast field to either give clients changes to the game state or information
 about other clients connecting or disconnecting.  
+Each JSON message is preceded by a 4 byte integer which gives the length of the message sent.  
 Upon connection, clients send a connect message to the server. The server then registers the client connection and returns a connected successfully message to the client.  
 
 

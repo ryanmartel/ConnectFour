@@ -43,3 +43,10 @@ class Action:
                 }
         return self.serialize(data)
 
+    def set_name(self, user_name):
+        data = {
+                "action": "set_name",
+                "name": user_name
+                }
+        return self.serialize(data)
+

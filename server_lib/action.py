@@ -13,11 +13,9 @@ class Action:
 
     # Requests
     # play_count gives the current game counter. this ensures consistency in plays
-    def gamestate(self, gamestate, play_count):
+    def games_status(self, game_status):
         data = {
-                "broadcast": "gamestate",
-                "gamestate": gamestate,
-                "count": play_count
+                "broadcast": "game_status",
                 }
         return self.serialize(data)
 
@@ -77,6 +75,19 @@ class Action:
         data = {
                 "result": "connection",
                 "status": "connected",
+                }
+        return self.serialize(data)
+
+    def ok(self):
+        data = {
+                "result": "ok"
+                }
+        return self.serialize(data)
+
+    def err(self, err):
+        data = {
+                "result": "err",
+                "err": err
                 }
         return self.serialize(data)
 
