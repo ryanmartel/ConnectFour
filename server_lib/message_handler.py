@@ -15,6 +15,9 @@ class MessageHandler:
 
     def new_player_connected(self, addr):
         self.game.add_player(addr)
+        if self.game.num_players() == 2:
+            self.game.setPregame()
+            self.broadcast(self.action.set_pregame())
 
     def remove_player(self, addr):
         self.game.remove_player(addr)

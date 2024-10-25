@@ -1,5 +1,7 @@
 import logging
+import struct
 import sys
+
 import socket
 import selectors
 import threading
@@ -41,14 +43,25 @@ class Client:
         while True:
             self.receive()
 
+    def shutdown(self):
+        self.logger.info("Shutting down client")
+        self.sock.close()
+        os._exit(0)
+
 
     def receive(self):
-        msg = self.sock.recv(1024).decode("utf-8")
+        bmsg_len = self.sock.recv(4)
+        if not bmsg_len:
+            self.logger.error(f'Server connection was lost! exiting...')
+            os._exit(1)
+
+        msg_len = struct.unpack('<i', bmsg_len)[0]
+        msg = self.sock.recv(msg_len).decode("utf-8")
         # Server has unexpectadly closed
         if not msg:
             self.logger.error(f'Server connection was lost! exiting...')
             os._exit(1)
-
+        
         json_msg = json.loads(msg)
         self.action.handle_message(json_msg)
         # Exceeds max allowed player count
@@ -74,7 +87,12 @@ if __name__ == '__main__':
     # try:
         # Change logging level here. 
     client = Client(logging.DEBUG, (sys.argv[1], int(sys.argv[2])))
-    client.connect()
+    try:
+        client.connect()
+    except KeyboardInterrupt:
+        print("Interrupt signal received, shutting down")
+        client.shutdown()
+
     # except ValueError:
     #     print('Invalid port entered. Expected Integer')
 

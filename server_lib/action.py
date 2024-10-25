@@ -1,4 +1,5 @@
 import json
+import struct
 
 
 class Action:
@@ -7,7 +8,9 @@ class Action:
         self.logger = logger
 
     def serialize(self, msg):
-        return bytes(json.dumps(msg), encoding="utf-8")
+        bjson = bytes(json.dumps(msg), encoding="utf-8")
+        return struct.pack(f'<i{len(bjson)}s', len(bjson), bjson)
+        # return bytes(json.dumps(msg), encoding="utf-8")
 
     # Requests
     # play_count gives the current game counter. this ensures consistency in plays
