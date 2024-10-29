@@ -13,10 +13,14 @@ class Action:
 
     # Requests
     # play_count gives the current game counter. this ensures consistency in plays
-    def game_status(self, game_status):
+    def game_status(self, turn_count, expected_mover, board):
         data = {
                 "broadcast": "game_status",
+                "turn_count": turn_count,
+                "expected_mover": expected_mover,
                 }
+        for loc, value in board:
+            data[f"({loc[0]}, {loc[1]})"] = value
         return self.serialize(data)
 
     def connection_start(self, addr):
@@ -37,6 +41,20 @@ class Action:
                 }
         return self.serialize(data)
 
+    def player_ready(self, num_waiting_on):
+        data = {
+                "broadcast": "ready_status",
+                "num_waiting_on": num_waiting_on
+                }
+        return self.serialize(data)
+
+    def set_idle(self):
+        data = {
+                "broadcast": "state",
+                "state": "waiting"
+                }
+        return self.serialize(data)
+
     def set_pregame(self):
         data = {
                 "broadcast": "state",
@@ -44,36 +62,51 @@ class Action:
                 }
         return self.serialize(data)
 
-    def set_run(self):
-        data = {
-                "broadcast": "state",
-                "state": "run"
-                }
-        return self.serialize(data)
-
-    def start_game(self, first_player, game_status):
+    def start_game(self, first_player, users):
+        user0 = list(users.values())[0]
+        user1 = list(users.values())[1]
         data = {
                 "broadcast": "state",
                 "state": "run",
-
+                "first_player": first_player,
+                "user0": {
+                    "host": user0.host,
+                    "port": user0.port,
+                    "name": user0.name,
+                    "value": user0.value,
+                    },
+                "user1": {
+                    "host": user1.host,
+                    "port": user1.port,
+                    "name": user1.name,
+                    "value": user1.value,
+                    }
                 }
+        return self.serialize(data)
 
 
-    def finish_game(self, winner, game_status):
+    def finish_game(self, winner):
         data = {
                 "broadcast": "state",
                 "state": "finished",
-
+                "winner": winner
                 }
         return self.serialize(data)
 
     # Responses
 
-    def move(self, status):
-        data = {
-                "result": "move",
-                "move_status": status
-                }
+    def move(self, err):
+        if err is None:
+            data = {
+                    "result": "move",
+                    "move_status": "accepted"
+                    }
+        else:
+            data = {
+                    "result": "move",
+                    "move_status": "rejected",
+                    "error": err
+                    }
         return self.serialize(data)
 
     def ping(self):
@@ -105,7 +138,7 @@ class Action:
     def err(self, err):
         data = {
                 "result": "err",
-                "err": err
+                "error": err
                 }
         return self.serialize(data)
 

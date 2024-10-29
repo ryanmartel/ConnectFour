@@ -2,7 +2,8 @@ from random import choice
 
 class Game:
 
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger = logger
         self.state = "waiting"
         self.board = self.new_board()
         self.column_tracker = {
