@@ -35,11 +35,11 @@ class Action:
                 }
         return self.serialize(data)
 
-    def move(self, location, current_count):
+    def move(self, column, turn_count):
         data = {
                 "action": "move",
-                "location": location,
-                "count": current_count
+                "column": column,
+                "turn-count": turn_count
                 }
         return self.serialize(data)
 

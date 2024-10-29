@@ -13,7 +13,7 @@ class Action:
 
     # Requests
     # play_count gives the current game counter. this ensures consistency in plays
-    def games_status(self, game_status):
+    def game_status(self, game_status):
         data = {
                 "broadcast": "game_status",
                 }
@@ -44,10 +44,28 @@ class Action:
                 }
         return self.serialize(data)
 
+    def set_run(self):
+        data = {
+                "broadcast": "state",
+                "state": "run"
+                }
+        return self.serialize(data)
+
     def start_game(self, first_player, game_status):
-        pass
+        data = {
+                "broadcast": "state",
+                "state": "run",
+
+                }
 
 
+    def finish_game(self, winner, game_status):
+        data = {
+                "broadcast": "state",
+                "state": "finished",
+
+                }
+        return self.serialize(data)
 
     # Responses
 

@@ -76,6 +76,14 @@ class Client:
                 os._exit(0)
             elif msg == "ping":
                 self.sock.sendall(self.action.ping())
+            elif msg == "name":
+                name = input("select name: ")
+                self.sock.sendall(self.action.set_name(name))
+            elif msg == "move":
+                print("select col: ")
+                col = input('0-6: ')
+                tc = input('select turn count: ')
+                self.sock.sendall(self.action.move(col, tc))
             else:
                 print(msg)
 
