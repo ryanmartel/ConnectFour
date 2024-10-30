@@ -1,4 +1,4 @@
-class users:
+class Users:
     
     def __init__(self, logger):
         # Key: user addr
@@ -60,7 +60,7 @@ class users:
             else:
                 curr = 1
 
-class user:
+class User:
 
     def __init__(self, addr):
         self.addr = addr

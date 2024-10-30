@@ -6,7 +6,6 @@ import json
 import struct
 
 from server_lib.action import Action
-from server_lib.game import Game
 from server_lib.message_handler import MessageHandler
 
 class Server:
@@ -26,10 +25,9 @@ class Server:
         self.write_sel = selectors.DefaultSelector()
 
         self.connected_clients = {}
-        self.game = Game()
 
         self.action = Action(self.logger)
-        self.handler = MessageHandler(self.logger, self.game, self.action, self.write_sel, self.connected_clients)
+        self.handler = MessageHandler(self.logger, self.action, self.write_sel, self.connected_clients)
 
     def start_server(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -59,7 +57,6 @@ class Server:
         self.read_sel.register(conn, selectors.EVENT_READ, self.receive)
         self.write_sel.register(conn, selectors.EVENT_WRITE)
         self.handler.new_player_connected(addr)
-        self.handler.broadcast(self.action.connection_start(addr))
 
     def receive(self, sock):
 
@@ -71,7 +68,6 @@ class Server:
             self.read_sel.unregister(sock)
             self.write_sel.unregister(sock)
             self.handler.remove_player(addr)
-            self.handler.broadcast(self.action.connection_end(addr))
             return
 
         msg_len = struct.unpack('<i', bmsg_len)[0]
@@ -83,7 +79,6 @@ class Server:
             self.read_sel.unregister(sock)
             self.write_sel.unregister(sock)
             self.handler.remove_player(addr)
-            self.handler.broadcast(self.action.connection_end(addr))
             return
 
         json_msg = json.loads(msg)
