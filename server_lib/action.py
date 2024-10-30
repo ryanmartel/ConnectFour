@@ -17,9 +17,10 @@ class Action:
         data = {
                 "broadcast": "game_status",
                 "turn_count": turn_count,
-                "expected_mover": expected_mover,
+                "expected_mover_host": expected_mover.host,
+                "expected_mover_port": expected_mover.port,
                 }
-        for loc, value in board:
+        for loc, value in board.items():
             data[f"({loc[0]}, {loc[1]})"] = value
         return self.serialize(data)
 
@@ -62,26 +63,32 @@ class Action:
                 }
         return self.serialize(data)
 
-    def start_game(self, first_player, users):
-        user0 = list(users.values())[0]
-        user1 = list(users.values())[1]
+    def set_run(self, first_player, users):
         data = {
                 "broadcast": "state",
                 "state": "run",
-                "first_player": first_player,
-                "user0": {
-                    "host": user0.host,
-                    "port": user0.port,
-                    "name": user0.name,
-                    "value": user0.value,
-                    },
-                "user1": {
-                    "host": user1.host,
-                    "port": user1.port,
-                    "name": user1.name,
-                    "value": user1.value,
-                    }
+                "first_player_host": first_player.host,
+                "first_player_port": first_player.port,
+                # "user0": {
+                #     "host": user0.host,
+                #     "port": user0.port,
+                #     "name": user0.name,
+                #     "value": user0.value,
+                #     },
+                # "user1": {
+                #     "host": user1.host,
+                #     "port": user1.port,
+                #     "name": user1.name,
+                #     "value": user1.value,
+                #     }
                 }
+        for index, (_, user) in enumerate(users.connected_users.items()):
+            data[f"user{index}"] = {
+                    "host": user.host,
+                    "port": user.port,
+                    "name": user.name,
+                    "value": user.value
+                    }
         return self.serialize(data)
 
 

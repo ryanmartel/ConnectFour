@@ -1,7 +1,7 @@
 from server_lib.users import *
 from server_lib.users import User
 from server_lib.board import Board
-from server_lib.game import Game
+from server_lib.game import *
 
 class MessageHandler:
 
@@ -22,7 +22,9 @@ class MessageHandler:
             if action == "move":
                 res = self.move(message, self.clients.get(sock))
                 self.respond(res, sock)
-                self.broadcast(self.action.game_status(None))
+                win = self.game.check_win_condition()
+                # turn_count, expected_move, board
+                self.broadcast(self.action.game_status(self.game.turn_count, self.game.whos_move, self.board.board))
             if action == "set_name":
                 res = self.set_name(message, self.clients.get(sock))
                 self.respond(res, sock)
@@ -35,8 +37,11 @@ class MessageHandler:
         self.users.add_user(User(addr))
         self.broadcast(self.action.connection_start(addr))
         if self.users.num_players() == 2:
-            self.game.setPregame()
-            self.broadcast(self.action.set_pregame())
+            try:
+                self.game.setPregame()
+                self.broadcast(self.action.set_pregame())
+            except InvalidStateTransferError:
+                pass
 
 
     # Called directly by server
@@ -55,15 +60,30 @@ class MessageHandler:
             res = self.action.err("User with this address was not found")
         self.logger.info(f"set host: {addr[0]} post: {addr[1]} name: {name}")
         if self.users.are_names_set():
+            self.users.set_values()
             self.game.setRun()
-            self.broadcast(self.action.set_run())
+            self.broadcast(self.action.set_run(self.game.first_player, self.users))
         return res
 
     def move(self, msg, addr):
         column = msg.get("column")
         turn_count = msg.get("turn-count")
-        res = self.game.move(addr, column, turn_count)
-        return self.action.move(res)
+        try:
+            self.game.move(addr, int(column), int(turn_count))
+            res = self.action.ok()
+        except UserNotFoundError:
+            res = self.action.err("User with this address was not found")
+        except InvalidOrderError:
+            res = self.action.err("It is not this users turn")
+        except OutOfDateError:
+            res = self.action.err("Stale data used for turn")
+        except InvalidColumnError:
+            res = self.action.err("Column out of range")
+        except InvalidRowError:
+            res = self.action.err("Column is full")
+        except ValueError:
+            res = self.action.err("Invalid value passed")
+        return res
 
     def respond(self, msg, sock):
         if msg is not None:

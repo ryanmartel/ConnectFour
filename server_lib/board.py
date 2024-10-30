@@ -14,7 +14,13 @@ class Board:
         return ret_row
 
     def move(self, column, row, value):
+        self.logger.info(f"Making move at ({column}, {row}) => {value}")
         self.board[(column, row)] = value
+
+    def clean(self):
+        self.column_tracker = self.new_column_tracker()
+        self.board = self.new_board()
+        self.logger.info("Cleaned board")
 
     def new_column_tracker(self):
         return {

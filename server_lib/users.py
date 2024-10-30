@@ -1,3 +1,5 @@
+from random import choice
+
 class Users:
     
     def __init__(self, logger):
@@ -59,6 +61,26 @@ class Users:
                 curr = -1
             else:
                 curr = 1
+
+    def first_user(self):
+        if len(self.connected_users) != 2:
+            self.logger.error(f"Incorrect number of users during first user action")
+            raise NotEnoughUsersError
+        li = list(self.connected_users.keys())
+        return self.connected_users.get(choice(li))
+
+    def next_turn(self, old_user):
+        print(f"OLD USER host: {old_user.host}, port: {old_user.port}")
+        for addr in self.connected_users.keys():
+            print(f"ADDR {addr[0]}, {addr[1]}")
+            if addr[0] != old_user.host or addr[1] != old_user.port:
+                return self.connected_users[addr]
+
+    def clean_connected(self):
+        for user in self.connected_users.values():
+            user.name = ""
+            user.value = 0
+        self.logger.info("Cleaned connected users")
 
 class User:
 
