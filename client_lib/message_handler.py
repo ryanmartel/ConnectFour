@@ -34,5 +34,5 @@ class MessageHandler:
         if broadcast == "gamestate":
             return
         if broadcast == "connection_status":
-            print(f'new connection to server: host: {message.get("host")}, port {message.get("port")}')
+            self.logger.info(f'new connection to server: host: {message.get("host")}, port {message.get("port")}')
             return

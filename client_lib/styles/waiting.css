@@ -1,0 +1,22 @@
+#dialog {
+    height: 100%;
+    margin: 4 8;
+    background: $panel;
+    color: $text;
+    border: tall $background;
+    content-align: center middle;
+    align: center middle;
+    padding: 1 2;
+}
+
+#connected {
+    align: center middle;
+    text-align: center;
+    text-style: bold;
+    padding: 1 0;
+}
+
+#waiting_on {
+    align: center middle;
+    text-align: center;
+}

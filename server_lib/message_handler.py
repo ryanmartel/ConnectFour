@@ -49,6 +49,7 @@ class MessageHandler:
         self.users.remove_user(addr)
         self.broadcast(self.action.connection_end(addr))
         self.game.setWaiting()
+        self.broadcast(self.action.set_waiting())
 
     
     def set_name(self, msg, addr):

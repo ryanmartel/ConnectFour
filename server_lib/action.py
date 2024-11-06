@@ -49,7 +49,7 @@ class Action:
                 }
         return self.serialize(data)
 
-    def set_idle(self):
+    def set_waiting(self):
         data = {
                 "broadcast": "state",
                 "state": "waiting"

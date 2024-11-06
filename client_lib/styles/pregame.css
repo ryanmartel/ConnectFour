@@ -1,0 +1,24 @@
+
+#dialog {
+    height: 100%;
+    margin: 4 8;
+    background: $panel;
+    color: $text;
+    border: tall $background;
+    align: center middle;
+    padding: 1 2;
+}
+
+#input {
+    margin: 1 1;
+    /* content-align: center middle; */
+    align: center middle;
+    text-align: center;
+    width: 50%;
+}
+
+#hint {
+    align: center middle;
+    text-align: center;
+    width: 50%;
+}

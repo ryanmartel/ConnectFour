@@ -9,20 +9,20 @@ import os
 import json
 
 from client_lib.action import Action
-from client_lib.tui import run
+from client_lib.tui import ConnectFour
 from client_lib.message_handler import MessageHandler
 
 
 class Client:
     def __init__(self, log_level, addr):
         # Logger options
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        ch.setFormatter(formatter)
+        # ch = logging.StreamHandler()
+        # ch.setLevel(logging.DEBUG)
+        # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        # ch.setFormatter(formatter)
         self.logger = logging.getLogger('CONNECT-FOUR CLIENT')
         self.logger.setLevel(log_level)
-        self.logger.addHandler(ch)
+        # self.logger.addHandler(ch)
 
         self.addr = addr
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -39,9 +39,10 @@ class Client:
         # Start Repl
         cin = threading.Thread(target=self.repl)
         cin.start()
-        # Start curses tui ui
-        ui = threading.Thread(target=run)
-        ui.start()
+        # Start tui ui
+        ui = ConnectFour(self.logger)
+        ui_thread = threading.Thread(target=ui.run)
+        ui_thread.start()
         # continue to receive on this thread
         while True:
             self.receive()

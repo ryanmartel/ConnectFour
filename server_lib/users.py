@@ -70,9 +70,7 @@ class Users:
         return self.connected_users.get(choice(li))
 
     def next_turn(self, old_user):
-        print(f"OLD USER host: {old_user.host}, port: {old_user.port}")
         for addr in self.connected_users.keys():
-            print(f"ADDR {addr[0]}, {addr[1]}")
             if addr[0] != old_user.host or addr[1] != old_user.port:
                 return self.connected_users[addr]
 
