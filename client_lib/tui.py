@@ -1,11 +1,13 @@
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
+from textual.reactive import reactive
 from textual.screen import ModalScreen, Screen
 from textual.widget import Widget
 from textual.widgets import Button, Footer, Header, Input, Label, Static
 
-
+from client_lib.action import Action
+from client_lib.message_handler import MessageHandler
 
 class Waiting(Screen):
     """The waiting screen diaplayed when less than two clients are connected"""
@@ -51,23 +53,27 @@ class LogModal(ModalScreen):
     """Modal window to show logs"""
 
     BINDINGS = [
-            Binding("l, escape", "exit_modal", "Exit Logs")
+            Binding("l, escape", "exit_modal", "Exit Logs"),
+            Binding("p", "app.ping", "send ping"),
             ]
-
-    class LogMessage(Static):
-
-        BORDER_TITLE = "Logs"
-        BORDER_SUBTITLE = "Press Esc or l to exit"
-
-        def compose(self) -> ComposeResult:
-            yield Static("logs")
 
     def compose(self) -> ComposeResult:
         # yield Static("logs", id="logmodal")
-        yield self.LogMessage(id="logmodal")
+        yield LogMessage(id="logmodal")
 
     def action_exit_modal(self) -> None:
         self.app.pop_screen()
+
+class LogMessage(Static):
+
+    lines = []
+
+    BORDER_TITLE = "Logs"
+    BORDER_SUBTITLE = "Press Esc or l to exit"
+
+    def compose(self) -> ComposeResult:
+        yield Static("logs")
+
 
 
 class Game(Screen):
@@ -90,8 +96,18 @@ class Game(Screen):
         yield GameRun()
         yield Footer()
 
+    def column_button(self, col: int):
+        """Get the button at this location"""
+        return self.query_one(f"#{ColumnButton.at(col)}", ColumnButton)
+
     def action_logs(self) -> None:
         self.app.push_screen(LogModal())
+
+    def action_navigate(self, column: int) -> None:
+        """Navigate to column indicator by offset"""
+
+        if isinstance(self.focused, ColumnButton):
+            self.set_focus(self.column_button((self.focused.col + column) % self.COLUMNS))
 
 class GameHeader(Widget):
     """Header for the game"""
@@ -144,6 +160,7 @@ class ColumnButton(Button):
 
     def __init__(self, col: int) -> None:
         super().__init__(f"{col}", id=self.at(col))
+        self.col = col
 
 
 class ConnectFour(App):
@@ -155,11 +172,22 @@ class ConnectFour(App):
             "game": Game,
             }
 
-    def __init__(self) -> None:
+    turn_count = reactive(0)
+
+    def __init__(self, sock, logger) -> None:
         super().__init__()
+        self.logger = logger
+        self.sock = sock
+        self.action = Action(self.logger)
 
     def on_mount(self) -> None:
         self.switch_mode("pregame")
 
-if __name__ == "__main__":
-    ConnectFour().run()
+    def action_ping(self) -> None:
+        self.sock.sendall(self.action.ping())
+
+    def action_move(self, col: int) -> None:
+        self.sock.sendall(self.action.move(col, self.turn_count))
+
+    def action_name(self, name: str) -> None:
+        self.sock.sendall(self.action.set_name(name))

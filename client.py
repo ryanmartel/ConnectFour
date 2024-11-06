@@ -14,6 +14,7 @@ from client_lib.message_handler import MessageHandler
 
 
 class Client:
+
     def __init__(self, log_level, addr):
         # Logger options
         # ch = logging.StreamHandler()
@@ -30,22 +31,24 @@ class Client:
 
         self.action = Action(self.logger)
         self.handler = MessageHandler(self.logger, self.action, self.sock)
+        self.ui = ConnectFour(self.sock, self.logger)
+
 
     def connect(self):
         self.logger.info(f"Connecting to host: {self.addr[0]}, port: {self.addr[1]}")
         self.sock.connect(self.addr)
         # send connection message to server
         self.sock.sendall(self.action.connect())
-        # Start Repl
-        cin = threading.Thread(target=self.repl)
-        cin.start()
-        # Start tui ui
-        ui = ConnectFour(self.logger)
-        ui_thread = threading.Thread(target=ui.run)
-        ui_thread.start()
-        # continue to receive on this thread
-        while True:
-            self.receive()
+        # # Start Repl
+        # cin = threading.Thread(target=self.repl)
+        # cin.start()
+        # Start receiving thread
+        rec = threading.Thread(target=self.receive)
+        rec.start()
+
+        self.ui.run()
+        # UI interface has exited, shutdown all threads.
+        os._exit(0)
 
     def shutdown(self):
         self.logger.info("Shutting down client")
@@ -54,20 +57,21 @@ class Client:
 
 
     def receive(self):
-        bmsg_len = self.sock.recv(4)
-        if not bmsg_len:
-            self.logger.error(f'Server connection was lost! exiting...')
-            os._exit(1)
+        while True:
+            bmsg_len = self.sock.recv(4)
+            if not bmsg_len:
+                self.logger.error(f'Server connection was lost! exiting...')
+                os._exit(1)
 
-        msg_len = struct.unpack('<i', bmsg_len)[0]
-        msg = self.sock.recv(msg_len).decode("utf-8")
-        # Server has unexpectadly closed
-        if not msg:
-            self.logger.error(f'Server connection was lost! exiting...')
-            os._exit(1)
-        
-        json_msg = json.loads(msg)
-        self.handler.handle_message(json_msg)
+            msg_len = struct.unpack('<i', bmsg_len)[0]
+            msg = self.sock.recv(msg_len).decode("utf-8")
+            # Server has unexpectadly closed
+            if not msg:
+                self.logger.error(f'Server connection was lost! exiting...')
+                os._exit(1)
+            
+            json_msg = json.loads(msg)
+            self.handler.handle_message(json_msg)
 
     # This may be able to be brought into the curses interface as it can handle input without blocking
     def repl(self):
