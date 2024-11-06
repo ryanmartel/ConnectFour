@@ -1,10 +1,13 @@
+import logging
+from typing import cast
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
+from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import ModalScreen, Screen
 from textual.widget import Widget
-from textual.widgets import Button, Footer, Header, Input, Label, Static
+from textual.widgets import Button, Footer, Header, Input, Label, Log, Static
 
 from client_lib.action import Action
 from client_lib.message_handler import MessageHandler
@@ -52,6 +55,8 @@ class Pregame(Screen):
 class LogModal(ModalScreen):
     """Modal window to show logs"""
 
+    logs = []
+
     BINDINGS = [
             Binding("l, escape", "exit_modal", "Exit Logs"),
             Binding("p", "app.ping", "send ping"),
@@ -66,14 +71,30 @@ class LogModal(ModalScreen):
 
 class LogMessage(Static):
 
-    lines = []
 
     BORDER_TITLE = "Logs"
     BORDER_SUBTITLE = "Press Esc or l to exit"
 
     def compose(self) -> ComposeResult:
-        yield Static("logs")
+        yield Log(id="logger")
 
+    def on_mount(self) -> None:
+        log = self.query_one(Log)
+        logs = LogModal.logs
+        for line in logs:
+            log.write_line(line)
+
+class ColumnButton(Button):
+    """Select button for column to play at"""
+
+    @staticmethod
+    def at(col: int) -> str:
+        """Returns the ID of the button at given location"""
+        return f"colbutton-{col}"
+
+    def __init__(self, col: int) -> None:
+        super().__init__(f"{col}", id=self.at(col))
+        self.col = col
 
 
 class Game(Screen):
@@ -88,6 +109,14 @@ class Game(Screen):
             Binding("l", "logs", "Open/Close Logs")
             ]
 
+
+    class MakeLog(Message):
+        """Make a log message."""
+
+        def __init__(self, line: str) -> None:
+            self.line = line
+            super().__init__()
+
     def compose(self) -> ComposeResult:
         """Compose the game screen"""
         # yield GameHeader()
@@ -96,16 +125,18 @@ class Game(Screen):
         yield GameRun()
         yield Footer()
 
-    def column_button(self, col: int):
+    def column_button(self, col: int) -> ColumnButton:
         """Get the button at this location"""
         return self.query_one(f"#{ColumnButton.at(col)}", ColumnButton)
+
+
 
     def action_logs(self) -> None:
         self.app.push_screen(LogModal())
 
     def action_navigate(self, column: int) -> None:
         """Navigate to column indicator by offset"""
-
+        self.post_message(self.MakeLog(f"Move at {column}"))
         if isinstance(self.focused, ColumnButton):
             self.set_focus(self.column_button((self.focused.col + column) % self.COLUMNS))
 
@@ -150,18 +181,15 @@ class ButtonGrid(Widget):
             yield ColumnButton(column)
             # yield Static(f"{column}", classes="selectbox")
 
-class ColumnButton(Button):
-    """Select button for column to play at"""
-
-    @staticmethod
-    def at(col: int) -> str:
-        """Returns the ID of the button at given location"""
-        return f"colbutton-{col}"
-
-    def __init__(self, col: int) -> None:
-        super().__init__(f"{col}", id=self.at(col))
-        self.col = col
-
+class ListHandler(logging.Handler):
+    def __init__(self, log_list):
+        # run the regular Handler __init__
+        logging.Handler.__init__(self)
+        # Our custom argument
+        self.log_list = log_list
+    def emit(self, record):
+            # record.message is the log message
+        self.log_list.append(self.format(record)) 
 
 class ConnectFour(App):
     TITLE = "Connect Four"
@@ -170,8 +198,8 @@ class ConnectFour(App):
             "waiting": Waiting,
             "pregame": Pregame,
             "game": Game,
+            "logs": LogModal,
             }
-
     turn_count = reactive(0)
 
     def __init__(self, sock, logger) -> None:
@@ -179,6 +207,21 @@ class ConnectFour(App):
         self.logger = logger
         self.sock = sock
         self.action = Action(self.logger)
+        # Set up logger
+        lh = ListHandler(LogModal.logs)
+        lh.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        lh.setFormatter(formatter)
+        self.logger.addHandler(lh)
+
+    def on_button_pressed(self, event: ColumnButton.Pressed) -> None:
+        button = cast(ColumnButton, event.button)
+        self.action_move(button.col)
+
+    def on_game_make_log(self, message: Game.MakeLog) -> None:
+        print(message.line)
+        logs = LogModal.logs
+        logs.append(message.line)
 
     def on_mount(self) -> None:
         self.switch_mode("pregame")
