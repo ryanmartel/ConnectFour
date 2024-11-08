@@ -1,5 +1,6 @@
 import logging
 from typing import cast
+from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
@@ -10,7 +11,7 @@ from textual.widget import Widget
 from textual.widgets import Button, Footer, Header, Input, Label, Log, Static
 
 from client_lib.action import Action
-from client_lib.message_handler import MessageHandler
+from client_lib.users import Users
 
 class Waiting(Screen):
     """The waiting screen diaplayed when less than two clients are connected"""
@@ -26,7 +27,6 @@ class Waiting(Screen):
         """Compose the waiting screen"""
         yield Header()
         yield Vertical(
-                Label("Connected!", id="connected"),
                 Label("waiting on other player...", id="waiting_on"),
                 id="dialog"
                 )
@@ -47,8 +47,10 @@ class Pregame(Screen):
             id="dialog",
             )
 
-    def on_input_submitted(self) -> None:
-        self.app.switch_mode("game")
+    # def on_input_submitted(self, event: Input.Submitted) -> None:
+    #     name = event.value
+    #
+    #     self.app.switch_mode("game")
 
         
 
@@ -113,8 +115,9 @@ class Game(Screen):
     class MakeLog(Message):
         """Make a log message."""
 
-        def __init__(self, line: str) -> None:
+        def __init__(self, line: str, severity: str,) -> None:
             self.line = line
+            self.severity = severity
             super().__init__()
 
     def compose(self) -> ComposeResult:
@@ -136,7 +139,7 @@ class Game(Screen):
 
     def action_navigate(self, column: int) -> None:
         """Navigate to column indicator by offset"""
-        self.post_message(self.MakeLog(f"Move at {column}"))
+        self.post_message(self.MakeLog(f"Move at {column}", "info"))
         if isinstance(self.focused, ColumnButton):
             self.set_focus(self.column_button((self.focused.col + column) % self.COLUMNS))
 
@@ -200,7 +203,33 @@ class ConnectFour(App):
             "game": Game,
             "logs": LogModal,
             }
-    turn_count = reactive(0)
+    turn_count = reactive(1)
+
+    class PregameMessage(Message):
+        """TUI message to set Pregame state"""
+        def __init__(self) -> None:
+            super().__init__()
+
+    class WaitingMessage(Message):
+        """TUI message to set Waiting state"""
+        def __init__(self) -> None:
+            super().__init__()
+
+    class RunMessage(Message):
+        """TUI message to set Run state and initialize users"""
+        def __init__(self, users: Users) -> None:
+            self.users = users
+            super().__init__()
+
+    class StatusMessage(Message):
+        """TUI game status update message"""
+        def __init__(self, turn_count, mover_host, mover_port, board):
+            self.turn_count = turn_count
+            self.mover_host = mover_host
+            self.mover_port = mover_port
+            self.board = board
+            super().__init__()
+
 
     def __init__(self, sock, logger) -> None:
         super().__init__()
@@ -219,12 +248,39 @@ class ConnectFour(App):
         self.action_move(button.col)
 
     def on_game_make_log(self, message: Game.MakeLog) -> None:
-        print(message.line)
-        logs = LogModal.logs
-        logs.append(message.line)
+        if message.severity == "info":
+            self.logger.info(message.line)
+        elif message.severity == "debug":
+            self.logger.debug(message.line)
+        elif message.severity == "error":
+            self.logger.error(message.line)
+        # logs = LogModal.logs
+        # logs.append(message.line)
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        self.action_name(event.value)
+        self.switch_mode("waiting")
+
+    def on_connect_four_status_message(self, message: StatusMessage) -> None:
+        self.logger.debug("got status message")
+        self.turn_count = message.turn_count
+
+    def on_connect_four_pregame_message(self, message: PregameMessage) -> None:
+        self.logger.info("TUI setting pregame")
+        self.switch_mode("pregame")
+
+    def on_connect_four_waiting_message(self, message: WaitingMessage) -> None:
+        self.logger.info("TUI setting waiting")
+        self.switch_mode("waiting")
+
+    def on_connect_four_run_message(self, message: RunMessage) -> None:
+        self.logger.info("TUI setting run")
+        self.users = message.users
+        self.switch_mode("game")
+
 
     def on_mount(self) -> None:
-        self.switch_mode("pregame")
+        self.switch_mode("waiting")
 
     def action_ping(self) -> None:
         self.sock.sendall(self.action.ping())
@@ -234,3 +290,4 @@ class ConnectFour(App):
 
     def action_name(self, name: str) -> None:
         self.sock.sendall(self.action.set_name(name))
+

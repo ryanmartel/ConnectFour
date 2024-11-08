@@ -16,22 +16,16 @@ from client_lib.message_handler import MessageHandler
 class Client:
 
     def __init__(self, log_level, addr):
-        # Logger options
-        # ch = logging.StreamHandler()
-        # ch.setLevel(logging.DEBUG)
-        # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        # ch.setFormatter(formatter)
         self.logger = logging.getLogger('CONNECT-FOUR CLIENT')
         self.logger.setLevel(log_level)
-        # self.logger.addHandler(ch)
 
         self.addr = addr
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sel = selectors.DefaultSelector()
 
         self.action = Action(self.logger)
-        self.handler = MessageHandler(self.logger, self.action, self.sock)
         self.ui = ConnectFour(self.sock, self.logger)
+        self.handler = MessageHandler(self.logger, self.ui, self.sock)
 
 
     def connect(self):

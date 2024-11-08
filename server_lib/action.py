@@ -20,8 +20,10 @@ class Action:
                 "expected_mover_host": expected_mover.host,
                 "expected_mover_port": expected_mover.port,
                 }
+        data_board = {}
         for loc, value in board.items():
-            data[f"({loc[0]}, {loc[1]})"] = value
+            data_board[(loc[0],loc[1])] = value
+        data["board"] = data_board
         return self.serialize(data)
 
     def connection_start(self, addr):
@@ -69,18 +71,6 @@ class Action:
                 "state": "run",
                 "first_player_host": first_player.host,
                 "first_player_port": first_player.port,
-                # "user0": {
-                #     "host": user0.host,
-                #     "port": user0.port,
-                #     "name": user0.name,
-                #     "value": user0.value,
-                #     },
-                # "user1": {
-                #     "host": user1.host,
-                #     "port": user1.port,
-                #     "name": user1.name,
-                #     "value": user1.value,
-                #     }
                 }
         for index, (_, user) in enumerate(users.connected_users.items()):
             data[f"user{index}"] = {
