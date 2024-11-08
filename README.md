@@ -20,6 +20,11 @@ about other clients connecting or disconnecting.
 Each JSON message is preceded by a 4 byte integer which gives the length of the message sent.  
 Upon connection, clients send a connect message to the server. The server then registers the client connection and returns a connected successfully message to the client.  
 
+**Game state Synchronization**
+Game state is synchronized across clients by the server sending broadcast messages to all clients after each move. The
+broadcast message is sent after every move request, even if it is an invalid move (which is rejected). This ensures that 
+even if clients somehow become out of sync, they are re-synchronized at the next attempted move. 
+
 
 **How to play:**
 1. **Start the server:** Run the `server.py` script.
