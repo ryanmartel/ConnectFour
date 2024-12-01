@@ -37,6 +37,14 @@ Cell {
     border: solid red;
 }
 
+Cell.red {
+    background: red;
+}
+
+Cell.blue {
+    background: blue;
+}
+
 ColumnButton {
     height: 100%;
     width: 100%;

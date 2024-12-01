@@ -19,3 +19,9 @@ class Users:
     def assign_first(self, user: User):
         self.first = user
 
+    def get_mover_name(self, host, port):
+        if self.local.host == host and self.local.port == port:
+            return self.local.name
+        else:
+            return self.remote.name
+

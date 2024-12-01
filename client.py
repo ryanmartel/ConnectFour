@@ -33,9 +33,6 @@ class Client:
         self.sock.connect(self.addr)
         # send connection message to server
         self.sock.sendall(self.action.connect())
-        # # Start Repl
-        # cin = threading.Thread(target=self.repl)
-        # cin.start()
         # Start receiving thread
         rec = threading.Thread(target=self.receive)
         rec.start()
@@ -66,25 +63,6 @@ class Client:
             
             json_msg = json.loads(msg)
             self.handler.handle_message(json_msg)
-
-    # This may be able to be brought into the curses interface as it can handle input without blocking
-    def repl(self):
-        while True:
-            msg = input('>>> ')
-            if msg == "exit":
-                os._exit(0)
-            elif msg == "ping":
-                self.sock.sendall(self.action.ping())
-            elif msg == "name":
-                name = input("select name: ")
-                self.sock.sendall(self.action.set_name(name))
-            elif msg == "move":
-                print("select col: ")
-                col = input('0-6: ')
-                tc = input('select turn count: ')
-                self.sock.sendall(self.action.move(col, tc))
-            else:
-                print(msg)
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:

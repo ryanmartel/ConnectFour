@@ -8,11 +8,12 @@ class Game:
         self.users = users
         self.state = "waiting"
         # What turn is the game on
-        self.turn_count = 0
+        self.turn_count = 1
         # Who's turn is it. returns user
         self.whos_move = None
         # Who started the game user
         self.first_player = None
+        self.game_won = False
 
     def get_turn_count(self):
         return self.turn_count
@@ -22,6 +23,8 @@ class Game:
         self.first_player = None
         self.whos_move = None
         self.board.clean()
+        self.turn_count = 1
+        self.game_won = False
         self.users.clean_connected()
         self.logger.info("State change: waiting")
 
@@ -48,7 +51,77 @@ class Game:
             self.logger.error(f"Invalid state change to run curr state: {self.state}")
             raise InvalidStateTransferError
 
-    def check_win_condition(self):
+    def check_win(self):
+        return self.game_won
+
+    def check_win_condition(self, column, row):
+        # Which player value are we checking
+        value = self.board.get_value(column, row)
+        self.logger.debug(f"value this turn {value}")
+        # Only have to check diagnals and vertical if this piece placed on fouth row or higher
+        if row >= 3:
+            # check down
+            score = 1
+            rp = row - 1
+            while(rp >= 0):
+                self.logger.debug(f"checking row {rp}")
+                if self.board.get_value(column, rp) == value:
+                    score = score + 1
+                    rp = rp - 1
+                else:
+                    break
+            self.logger.debug(f"down check score: {score}")
+            if score == 4:
+                return True
+
+            # Check left diagnal
+            score = 1
+            cp = column - 1
+            rp = row - 1
+            while(rp >= 0 and cp >= 0):
+                if self.board.get_value(cp, rp) == value:
+                    score = score + 1
+                    rp = rp - 1
+                    cp = cp - 1
+                else:
+                    break
+            if score == 4:
+                return True
+
+            # Check right diagnal
+            score = 1
+            cp = column + 1
+            rp = row + 1
+            while(rp >= 0 and cp <= 6):
+                if self.board.get_value(cp, rp) == value:
+                    score = score + 1
+                    rp = rp - 1
+                    cp = cp + 1
+                else:
+                    break
+            if score == 4:
+                return True
+
+        # Always have to check the horizontal condition
+        score = 1
+        # check left
+        cp = column - 1
+        while(cp >= 0):
+            if self.board.get_value(cp, row) == value:
+                score = score + 1
+                cp = cp - 1
+            else:
+                break
+        # check right
+        cp = column + 1
+        while(cp <= 6):
+            if self.board.get_value(cp, row) == value:
+                score = score + 1
+                cp = cp + 1
+            else:
+                break
+        if score == 4:
+            return True
         return False
 
     # TODO: Fill in error conditions
@@ -76,6 +149,9 @@ class Game:
             self.logger.error("Invalid row")
             raise InvalidRowError
         self.board.move(column, row, user.value)
+        self.game_won = self.check_win_condition(column, row)
+        if self.game_won:
+            self.logger.info("Game won")
         self.turn_count += 1
         self.whos_move = self.users.next_turn(user)
         self.logger.info(f"expecting host: {self.whos_move.host}, port: {self.whos_move.port} to play next")

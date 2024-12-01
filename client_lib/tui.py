@@ -13,6 +13,28 @@ from textual.widgets import Button, Footer, Header, Input, Label, Log, Static
 from client_lib.action import Action
 from client_lib.users import Users
 
+class Finished(Screen):
+    """The game finished screen displayed when a player wins the game"""
+
+    CSS_PATH = "./styles/finished.css"
+
+    BINDINGS = [
+            Binding("q", "app.quit", "Quit"),
+            Binding("l", "logs", "Open/Close Logs")
+            ]
+
+    def compose(self) -> ComposeResult:
+        """Compose the waiting screen"""
+        yield Header()
+        yield Vertical(
+                Label("Game Winner!", id="winner"),
+                id="dialog"
+                )
+        yield Footer()
+
+    def action_logs(self) -> None:
+        self.app.push_screen(LogModal())
+
 class Waiting(Screen):
     """The waiting screen diaplayed when less than two clients are connected"""
 
@@ -46,13 +68,6 @@ class Pregame(Screen):
             Label("Press 'Enter' to continue", id="hint"),
             id="dialog",
             )
-
-    # def on_input_submitted(self, event: Input.Submitted) -> None:
-    #     name = event.value
-    #
-    #     self.app.switch_mode("game")
-
-        
 
 class LogModal(ModalScreen):
     """Modal window to show logs"""
@@ -99,6 +114,25 @@ class ColumnButton(Button):
         self.col = col
 
 
+class Cell(Static):
+    """Playable spaces in the game board"""
+
+    @staticmethod
+    def at(row: int, col: int) -> str:
+        """Returns the ID of the button at given location"""
+        return f"colbutton-{col}-{row}"
+
+    def __init__(self, row: int, col: int) -> None:
+        super().__init__("", id=self.at(row, col))
+
+class GameGrid(Widget):
+    """Main playable grid of cells"""
+    def compose(self) -> ComposeResult:
+        for row in reversed(range(Game.ROWS)):
+            for column in range(Game.COLUMNS):
+                yield Cell(row, column)
+    # yield Static(f"{row}-{column}", classes="gridbox")
+
 class Game(Screen):
 
     ROWS = 6
@@ -132,6 +166,18 @@ class Game(Screen):
         """Get the button at this location"""
         return self.query_one(f"#{ColumnButton.at(col)}", ColumnButton)
 
+    def cell(self, row: int, col: int) -> Cell:
+        """Get cell at given position"""
+        return self.query_one(f"#{Cell.at(row,col)}", Cell)
+
+    def color_cell(self, col: int, row: int, value: int) -> None:
+        """set the color of the cell according to the value"""
+        if 0 <= row <= 6 and 0 <= col <= 7:
+            if value == 1:
+                self.cell(row,col).set_class(True, "red")
+            elif value == -1:
+                self.cell(row,col).set_class(True, "blue")
+
 
 
     def action_logs(self) -> None:
@@ -151,31 +197,26 @@ class GameHeader(Widget):
     
 class GameRun(Widget):
 
+
     def compose(self) -> ComposeResult:
-        yield Static("One", classes="box")
+        # yield Static("One", classes="box")
+        yield GameStatus()
         yield GameGrid()
         # yield Static("Two", classes="box")
         yield ButtonGrid()
 
 
-class GameGrid(Widget):
-    """Main playable grid of cells"""
-    def compose(self) -> ComposeResult:
-        for row in range(Game.ROWS):
-            for column in range(Game.COLUMNS):
-                yield Cell(row, column)
-                # yield Static(f"{row}-{column}", classes="gridbox")
 
-class Cell(Static):
-    """Playable spaces in the game board"""
+class GameStatus(Widget):
+    """Container for game status items"""
+    status = reactive("Next Turn: ")
+    who = reactive("")
 
-    @staticmethod
-    def at(row: int, col: int) -> str:
-        """Returns the ID of the button at given location"""
-        return f"colbutton-{col}-{row}"
+    def render(self) -> str:
+        return f"{self.status}{self.who}"
 
-    def __init__(self, row: int, col: int) -> None:
-        super().__init__("", id=self.at(row, col))
+
+
 
 class ButtonGrid(Widget):
     """Buttons for row selection"""
@@ -202,8 +243,10 @@ class ConnectFour(App):
             "pregame": Pregame,
             "game": Game,
             "logs": LogModal,
+            "finished": Finished,
             }
     turn_count = reactive(1)
+    board = reactive({})
 
     class PregameMessage(Message):
         """TUI message to set Pregame state"""
@@ -227,6 +270,14 @@ class ConnectFour(App):
             self.turn_count = turn_count
             self.mover_host = mover_host
             self.mover_port = mover_port
+            self.board = board
+            super().__init__()
+
+    class WinnerMessage(Message):
+        """TUI game winner message"""
+        def __init__(self, winner_host, winner_port, board):
+            self.winner_host = winner_host
+            self.winner_port = winner_port
             self.board = board
             super().__init__()
 
@@ -254,16 +305,34 @@ class ConnectFour(App):
             self.logger.debug(message.line)
         elif message.severity == "error":
             self.logger.error(message.line)
-        # logs = LogModal.logs
-        # logs.append(message.line)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         self.action_name(event.value)
         self.switch_mode("waiting")
 
     def on_connect_four_status_message(self, message: StatusMessage) -> None:
-        self.logger.debug("got status message")
+        game = self.query_one(Game)
+        self.logger.debug("received status message")
         self.turn_count = message.turn_count
+        self.board = message.board
+        for loc, value in self.board.items():
+            game.color_cell(loc[0], loc[1], value)
+        self.query_one(GameStatus).who = self.users.get_mover_name(message.mover_host, message.mover_port)
+
+    def on_connect_four_winner_message(self, message: WinnerMessage) -> None:
+        self.logger.info("Game won!, setting finished")
+        for button in self.query(ColumnButton):
+            button.disabled = True
+        game = self.query_one(Game)
+        self.board = message.board
+        for loc, value in self.board.items():
+            game.color_cell(loc[0], loc[1], value)
+        winner = self.users.get_mover_name(message.winner_host, message.winner_port)
+        status = self.query_one(GameStatus)
+        status.who = f"{winner}!"
+        status.status = "The Winner is: "
+        # self.switch_mode("finished")
+
 
     def on_connect_four_pregame_message(self, message: PregameMessage) -> None:
         self.logger.info("TUI setting pregame")
@@ -273,10 +342,11 @@ class ConnectFour(App):
         self.logger.info("TUI setting waiting")
         self.switch_mode("waiting")
 
-    def on_connect_four_run_message(self, message: RunMessage) -> None:
+    async def on_connect_four_run_message(self, message: RunMessage) -> None:
         self.logger.info("TUI setting run")
         self.users = message.users
-        self.switch_mode("game")
+        await self.switch_mode("game")
+        self.query_one(GameStatus).who = self.users.first.name
 
 
     def on_mount(self) -> None:

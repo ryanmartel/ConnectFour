@@ -22,7 +22,19 @@ class Action:
                 }
         data_board = {}
         for loc, value in board.items():
-            data_board[(loc[0],loc[1])] = value
+            data_board[f"{loc[0]} {loc[1]}"] = value
+        data["board"] = data_board
+        return self.serialize(data)
+
+    def game_win(self, board, winner):
+        data = {
+                "broadcast": "game_win",
+                "winner_host": winner.host,
+                "winner_port": winner.port,
+                }
+        data_board = {}
+        for loc, value in board.items():
+            data_board[f"{loc[0]} {loc[1]}"] = value
         data["board"] = data_board
         return self.serialize(data)
 

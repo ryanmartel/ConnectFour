@@ -22,9 +22,13 @@ class MessageHandler:
             if action == "move":
                 res = self.move(message, self.clients.get(sock))
                 self.respond(res, sock)
-                win = self.game.check_win_condition()
+                win = self.game.check_win()
                 # turn_count, expected_move, board
-                self.broadcast(self.action.game_status(self.game.turn_count, self.game.whos_move, self.board.board))
+                if win:
+                    winning_user = self.users.get_user(self.clients.get(sock))
+                    self.broadcast(self.action.game_win(self.board.board, winning_user))
+                else:
+                    self.broadcast(self.action.game_status(self.game.turn_count, self.game.whos_move, self.board.board))
             if action == "set_name":
                 res = self.set_name(message, self.clients.get(sock))
                 self.respond(res, sock)
