@@ -13,7 +13,8 @@ class Game:
         self.whos_move = None
         # Who started the game user
         self.first_player = None
-        self.game_won = False
+        # Player who won the game
+        self.winner = None
 
     def get_turn_count(self):
         return self.turn_count
@@ -24,7 +25,7 @@ class Game:
         self.whos_move = None
         self.board.clean()
         self.turn_count = 1
-        self.game_won = False
+        self.winner_name = None
         self.users.clean_connected()
         self.logger.info("State change: waiting")
 
@@ -51,8 +52,18 @@ class Game:
             self.logger.error(f"Invalid state change to run curr state: {self.state}")
             raise InvalidStateTransferError
 
-    def check_win(self):
-        return self.game_won
+    def setFinished(self, winner):
+        if self.state == "run":
+            self.logger.info("State change: Finished")
+            self.state = "finished"
+            self.winner = winner
+        else:
+            self.logger.error(f"Invalid state change to finished curr state: {self.state}")
+
+    def isFinished(self):
+        if self.state == "finished":
+            return True
+        return False
 
     def check_win_condition(self, column, row):
         # Which player value are we checking
@@ -152,9 +163,11 @@ class Game:
         self.game_won = self.check_win_condition(column, row)
         if self.game_won:
             self.logger.info("Game won")
-        self.turn_count += 1
-        self.whos_move = self.users.next_turn(user)
-        self.logger.info(f"expecting host: {self.whos_move.host}, port: {self.whos_move.port} to play next")
+            self.setFinished(user)
+        else:
+            self.turn_count += 1
+            self.whos_move = self.users.next_turn(user)
+            self.logger.info(f"expecting host: {self.whos_move.host}, port: {self.whos_move.port} to play next")
 
 
 class InvalidStateTransferError(Exception):

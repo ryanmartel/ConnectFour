@@ -49,8 +49,13 @@ class Server:
 
         if len(self.connected_clients) == 2:
             self.logger.warning(f'Too many clients! only two players are allowed. Removing last added client')
-            conn.sendall(self.action.connection_refuse())
-            conn.close()
+            conn.sendall(self.action.connection_refuse("Too many players"))
+            conn.shutdown(socket.SHUT_RDWR)
+            return
+        if self.handler.game_finished():
+            self.logger.warning(f'Attempted to connect to finished game. Refused')
+            conn.sendall(self.action.connection_refuse("Players still exiting game"))
+            conn.shutdown(socket.SHUT_RDWR)
             return
 
         self.connected_clients[conn] = addr

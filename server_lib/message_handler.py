@@ -22,10 +22,8 @@ class MessageHandler:
             if action == "move":
                 res = self.move(message, self.clients.get(sock))
                 self.respond(res, sock)
-                win = self.game.check_win()
-                # turn_count, expected_move, board
-                if win:
-                    winning_user = self.users.get_user(self.clients.get(sock))
+                if self.game.isFinished():
+                    winning_user = self.game.winner
                     self.broadcast(self.action.game_win(self.board.board, winning_user))
                 else:
                     self.broadcast(self.action.game_status(self.game.turn_count, self.game.whos_move, self.board.board))
@@ -47,13 +45,22 @@ class MessageHandler:
             except InvalidStateTransferError:
                 pass
 
+    def game_finished(self):
+        if self.game.isFinished():
+            return True
+        return False
 
     # Called directly by server
     def remove_player(self, addr):
         self.users.remove_user(addr)
         self.broadcast(self.action.connection_end(addr))
-        self.game.setWaiting()
-        self.broadcast(self.action.set_waiting())
+        if not self.game.isFinished():
+            self.game.setWaiting()
+            self.broadcast(self.action.set_waiting())
+        else:
+            if self.users.num_players() == 0:
+                self.game.setWaiting()
+                self.broadcast(self.action.set_waiting())
 
     
     def set_name(self, msg, addr):

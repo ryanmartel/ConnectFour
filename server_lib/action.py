@@ -124,10 +124,11 @@ class Action:
                 }
         return self.serialize(data)
 
-    def connection_refuse(self):
+    def connection_refuse(self, reason):
         data = {
                 "result": "connection",
                 "status": "refused",
+                "reason": reason
                 }
         return self.serialize(data)
 

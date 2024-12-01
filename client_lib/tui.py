@@ -211,9 +211,10 @@ class GameStatus(Widget):
     """Container for game status items"""
     status = reactive("Next Turn: ")
     who = reactive("")
+    exit_msg = reactive("")
 
     def render(self) -> str:
-        return f"{self.status}{self.who}"
+        return f"{self.status}{self.who}\n{self.exit_msg}"
 
 
 
@@ -331,6 +332,7 @@ class ConnectFour(App):
         status = self.query_one(GameStatus)
         status.who = f"{winner}!"
         status.status = "The Winner is: "
+        status.exit_msg = "Press 'q' to quit"
         # self.switch_mode("finished")
 
 

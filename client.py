@@ -30,12 +30,12 @@ class Client:
 
     def connect(self):
         self.logger.info(f"Connecting to host: {self.addr[0]}, port: {self.addr[1]}")
-        self.sock.connect(self.addr)
-        # send connection message to server
-        self.sock.sendall(self.action.connect())
         # Start receiving thread
         rec = threading.Thread(target=self.receive)
+        self.sock.connect(self.addr)
         rec.start()
+        # send connection message to server
+        self.sock.sendall(self.action.connect())
 
         self.ui.run()
         # UI interface has exited, shutdown all threads.
@@ -51,14 +51,14 @@ class Client:
         while True:
             bmsg_len = self.sock.recv(4)
             if not bmsg_len:
-                self.logger.error(f'Server connection was lost! exiting...')
+                print(f'Server connection was lost! exiting...')
                 os._exit(1)
 
             msg_len = struct.unpack('<i', bmsg_len)[0]
             msg = self.sock.recv(msg_len).decode("utf-8")
             # Server has unexpectadly closed
             if not msg:
-                self.logger.error(f'Server connection was lost! exiting...')
+                print(f'Server connection was lost! exiting...')
                 os._exit(1)
             
             json_msg = json.loads(msg)
@@ -76,6 +76,8 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("Interrupt signal received, shutting down")
         client.shutdown()
+    except Exception as e:
+        print(f"Uncaught exception: {e}")
 
     # except ValueError:
     #     print('Invalid port entered. Expected Integer')

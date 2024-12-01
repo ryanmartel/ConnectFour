@@ -30,8 +30,8 @@ class MessageHandler:
         if result == "connection":
             # Exceeds max allowed player count
             if message.get("status") == "refused":
-                self.logger.error('Too Many clients currently in game. Max allowed is 2')
-                os._exit(1)
+                reason = message.get("reason")
+                print(f'Can not connect to server: {reason}')
 
 
     def process_broadcast(self, broadcast, message):
