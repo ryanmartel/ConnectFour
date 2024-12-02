@@ -45,7 +45,15 @@ there are two players connected, the game will move to the Pregame state.
 4. **Pregame:** Pregame is where players can write in a username for the game session. the input must be
    between 1 and 10 letters in length. Once both players enter their names the game will start!
 6. **Play the game:** Players take turns entering their moves. The first player to get four in a row wins!
-   The current player's turn is located above the game board. Once one player 
+   The current player's turn is located above the game board. Once one player gets four in a row, or the game board
+   is full (a draw) the game will enter the finished state.
+7. **Exit the game:** In the finished state, the message above the board will reflect the winner of the game (or draw if one
+   occured). Press 'q' to quit the game. New players can not connect to the server until both players have exited
+   from a finished game.
+
+## Additional Information
+
+### Security/Risk Evaluation
 
 **Technologies used:**
 * Python
