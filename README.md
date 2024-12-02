@@ -1,16 +1,25 @@
 # Connect-Four Game Example
 
-This is a simple Connect-Four game implemented using Python and sockets. The GUI is provided through a curses terminal interface
+This is a simple Connect-Four game implemented using Python and sockets. The GUI is provided through a textual terminal interface (TUI)
+A requirements.txt file is provided with all dependencies needed to run the client and server.
 
-**Current Status:**
-Currently server.py and client.py only set up a TCP connection and send simple messages from client to server.
-starting `client.py` with `host port ping` will return the response `pong` to the client.  All other arguments will 
-return a graceful error response and exit the client.  
+## How to Run
+**SERVER**  
+`python server.py -p [port]`  
+Where port is the desired port for the server to run. Ensure this port is open prior to starting the server.
 
-Logging is implemented and while in development is set to DEBUG mode. This will show the raw message contents both sent and 
-received on the server and client. This will also show tracebacks from exceptions which would otherwise be presented in a 
-more user friendly manner.
+**CLIENT**  
+`python client.py -i [host] -p [port]`  
+Where host is the host ip addr or DNS of the running server and port is the port that the server is running on.  
 
+**Additional options**  
+Both client and server support `-h` for help and `--loglevel [loglevel]` to change the minimum level event to be logged. The default
+log level is 'INFO', available options are 'DEBUG', 'INFO', 'WARNING', 'ERROR'.
+
+## Runtime Mechanics
+
+### Logging
+Logging is implemented in both the server and client. 
 **Game Message Protocol**
 All messages are passed over json. The command type is sent using the action field. additional fields may be present depending on the selected action. 
 For example, a move action will also contain a field with the location of the move. The response sent from the server will contain a result field. 
