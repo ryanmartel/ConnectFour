@@ -4,6 +4,7 @@ import selectors
 import socket
 import json
 import struct
+import argparse
 
 from server_lib.action import Action
 from server_lib.message_handler import MessageHandler
@@ -99,16 +100,20 @@ class Server:
                 cb(sock)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("usage:", sys.argv[0], "<port>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p","--port", required=True, help="Port used to run the ConnectFour server", type=int)
+    parser.add_argument("--loglevel", help="Log verbosity level: Default INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
+    args = parser.parse_args()
+    loglevel = logging.INFO
+    if args.loglevel == "DEBUG":
+        loglevel = logging.DEBUG
+    elif args.loglevel == "WARNING":
+        loglevel = logging.WARNING
+    elif args.loglevel == "ERROR":
+        loglevel = logging.ERROR
+    server = Server(args.port, loglevel)
     try:
-        port = int(sys.argv[1])
-        server = Server(port, logging.DEBUG)
-        try:
-            server.run()
-        except KeyboardInterrupt:
-            print('Interrupt signal received, shutting down')
-            server.shutdown()
-    except ValueError:
-        print('Invalid port entered. Expected Integer')
+        server.run()
+    except KeyboardInterrupt:
+        print('Interrupt signal received, shutting down')
+        server.shutdown()

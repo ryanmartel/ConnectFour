@@ -1,4 +1,3 @@
-import os
 from socket import socket
 
 from client_lib.tui import ConnectFour
@@ -25,8 +24,6 @@ class MessageHandler:
     def process_result(self, result, message):
         if result == "move":
             return
-        if result == "pong":
-            return
         if result == "connection":
             # Exceeds max allowed player count
             if message.get("status") == "refused":
@@ -45,6 +42,12 @@ class MessageHandler:
             self.handle_game_status(message)
         if broadcast == "game_win":
             self.handle_game_win(message)
+        if broadcast == "game_draw":
+            self.handle_game_draw(message)
+
+    def handle_game_draw(self, message):
+        board = self.format_board(message.get("board"))
+        self.ui.post_message(self.ui.DrawMessage(board))
 
     def handle_game_win(self, message):
         winner_host = message.get("winner_host")
@@ -72,7 +75,8 @@ class MessageHandler:
                 users.first = users.local
             else:
                 users.first = users.remote
-            self.ui.post_message(self.ui.RunMessage(users))
+            board = self.format_board(message.get("board"))
+            self.ui.post_message(self.ui.RunMessage(users, board))
 
     def handle_game_status(self, message):
         turn_count = int(message.get("turn_count"))

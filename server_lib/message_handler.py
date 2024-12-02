@@ -24,7 +24,11 @@ class MessageHandler:
                 self.respond(res, sock)
                 if self.game.isFinished():
                     winning_user = self.game.winner
-                    self.broadcast(self.action.game_win(self.board.board, winning_user))
+                    if winning_user is None:
+                        self.logger.debug("HIT draw")
+                        self.broadcast(self.action.game_draw(self.board.board))
+                    else:
+                        self.broadcast(self.action.game_win(self.board.board, winning_user))
                 else:
                     self.broadcast(self.action.game_status(self.game.turn_count, self.game.whos_move, self.board.board))
             if action == "set_name":
@@ -74,7 +78,7 @@ class MessageHandler:
         if self.users.are_names_set():
             self.users.set_values()
             self.game.setRun()
-            self.broadcast(self.action.set_run(self.game.first_player, self.users))
+            self.broadcast(self.action.set_run(self.game.first_player, self.users, self.board.board))
         return res
 
     def move(self, msg, addr):

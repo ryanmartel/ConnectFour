@@ -19,13 +19,18 @@ class Game:
     def get_turn_count(self):
         return self.turn_count
 
+    def is_max_turn(self):
+        if self.turn_count == 42:
+            return True
+        return False
+
     def setWaiting(self):
         self.state = "waiting"
         self.first_player = None
         self.whos_move = None
         self.board.clean()
         self.turn_count = 1
-        self.winner_name = None
+        self.winner = None
         self.users.clean_connected()
         self.logger.info("State change: waiting")
 
@@ -75,7 +80,6 @@ class Game:
             score = 1
             rp = row - 1
             while(rp >= 0):
-                self.logger.debug(f"checking row {rp}")
                 if self.board.get_value(column, rp) == value:
                     score = score + 1
                     rp = rp - 1
@@ -85,33 +89,54 @@ class Game:
             if score == 4:
                 return True
 
-            # Check left diagnal
-            score = 1
-            cp = column - 1
-            rp = row - 1
-            while(rp >= 0 and cp >= 0):
-                if self.board.get_value(cp, rp) == value:
-                    score = score + 1
-                    rp = rp - 1
-                    cp = cp - 1
-                else:
-                    break
-            if score == 4:
-                return True
+        # Check left diagnal
+        score = 1
+        cp = column - 1
+        rp = row - 1
+        while(rp >= 0 and cp >= 0):
+            if self.board.get_value(cp, rp) == value:
+                score = score + 1
+                rp = rp - 1
+                cp = cp - 1
+            else:
+                break
+        cp = column + 1
+        rp = row + 1
+        while(rp <= 5 and cp <= 6):
+            if self.board.get_value(cp, rp) == value:
+                score = score + 1
+                rp = rp + 1
+                cp = cp + 1
+            else:
+                break
+        
+        self.logger.debug(f"left diag check score: {score}")
+        if score == 4:
+            return True
 
-            # Check right diagnal
-            score = 1
-            cp = column + 1
-            rp = row + 1
-            while(rp >= 0 and cp <= 6):
-                if self.board.get_value(cp, rp) == value:
-                    score = score + 1
-                    rp = rp - 1
-                    cp = cp + 1
-                else:
-                    break
-            if score == 4:
-                return True
+        # Check right diagnal
+        score = 1
+        cp = column + 1
+        rp = row - 1
+        while(rp >= 0 and cp <= 6):
+            if self.board.get_value(cp, rp) == value:
+                score = score + 1
+                rp = rp - 1
+                cp = cp + 1
+            else:
+                break
+        cp = column - 1
+        rp = row + 1
+        while(rp <= 5 and cp >= 0):
+            if self.board.get_value(cp, rp) == value:
+                score = score + 1
+                rp = rp + 1
+                cp = cp - 1
+            else:
+                break
+        self.logger.debug(f"right diag check score: {score}")
+        if score == 4:
+            return True
 
         # Always have to check the horizontal condition
         score = 1
@@ -131,6 +156,7 @@ class Game:
                 cp = cp + 1
             else:
                 break
+        self.logger.debug(f"horizontal check score: {score}")
         if score == 4:
             return True
         return False
@@ -164,6 +190,9 @@ class Game:
         if self.game_won:
             self.logger.info("Game won")
             self.setFinished(user)
+        elif self.is_max_turn():
+            self.logger.info("Game is a Draw")
+            self.setFinished(None)
         else:
             self.turn_count += 1
             self.whos_move = self.users.next_turn(user)

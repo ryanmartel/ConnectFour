@@ -1,6 +1,7 @@
 import logging
 import struct
 import sys
+import argparse
 
 import socket
 import selectors
@@ -65,12 +66,20 @@ class Client:
             self.handler.handle_message(json_msg)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print("usage:", sys.argv[0], "<host> <port>")
-        sys.exit(1)
-    # try:
-        # Change logging level here. 
-    client = Client(logging.DEBUG, (sys.argv[1], int(sys.argv[2])))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--ip", required=True, help="The ip address or DNS of the running ConnectFour server")
+    parser.add_argument("-p","--port", required=True, help="Port used by the running ConnectFour server", type=int)
+    parser.add_argument("--loglevel", help="Log verbosity level: Default INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
+    args = parser.parse_args()
+    # Change logging level here. 
+    loglevel = logging.INFO
+    if args.loglevel == "DEBUG":
+        loglevel = logging.DEBUG
+    elif args.loglevel == "WARNING":
+        loglevel = logging.WARNING
+    elif args.loglevel == "ERROR":
+        loglevel = logging.ERROR
+    client = Client(loglevel, (args.ip, args.port))
     try:
         client.connect()
     except KeyboardInterrupt:
@@ -78,8 +87,4 @@ if __name__ == '__main__':
         client.shutdown()
     except Exception as e:
         print(f"Uncaught exception: {e}")
-
-    # except ValueError:
-    #     print('Invalid port entered. Expected Integer')
-
 

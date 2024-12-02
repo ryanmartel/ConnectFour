@@ -4,6 +4,7 @@ from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
+from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import ModalScreen, Screen
@@ -13,27 +14,6 @@ from textual.widgets import Button, Footer, Header, Input, Label, Log, Static
 from client_lib.action import Action
 from client_lib.users import Users
 
-class Finished(Screen):
-    """The game finished screen displayed when a player wins the game"""
-
-    CSS_PATH = "./styles/finished.css"
-
-    BINDINGS = [
-            Binding("q", "app.quit", "Quit"),
-            Binding("l", "logs", "Open/Close Logs")
-            ]
-
-    def compose(self) -> ComposeResult:
-        """Compose the waiting screen"""
-        yield Header()
-        yield Vertical(
-                Label("Game Winner!", id="winner"),
-                id="dialog"
-                )
-        yield Footer()
-
-    def action_logs(self) -> None:
-        self.app.push_screen(LogModal())
 
 class Waiting(Screen):
     """The waiting screen diaplayed when less than two clients are connected"""
@@ -156,9 +136,7 @@ class Game(Screen):
 
     def compose(self) -> ComposeResult:
         """Compose the game screen"""
-        # yield GameHeader()
         yield Header()
-        # yield Placeholder()
         yield GameRun()
         yield Footer()
 
@@ -177,6 +155,8 @@ class Game(Screen):
                 self.cell(row,col).set_class(True, "red")
             elif value == -1:
                 self.cell(row,col).set_class(True, "blue")
+            else:
+                self.cell(row,col).remove_class("red", "blue")
 
 
 
@@ -185,7 +165,7 @@ class Game(Screen):
 
     def action_navigate(self, column: int) -> None:
         """Navigate to column indicator by offset"""
-        self.post_message(self.MakeLog(f"Move at {column}", "info"))
+        self.post_message(self.MakeLog(f"Move at {column}", "debug"))
         if isinstance(self.focused, ColumnButton):
             self.set_focus(self.column_button((self.focused.col + column) % self.COLUMNS))
 
@@ -199,10 +179,8 @@ class GameRun(Widget):
 
 
     def compose(self) -> ComposeResult:
-        # yield Static("One", classes="box")
         yield GameStatus()
         yield GameGrid()
-        # yield Static("Two", classes="box")
         yield ButtonGrid()
 
 
@@ -244,7 +222,6 @@ class ConnectFour(App):
             "pregame": Pregame,
             "game": Game,
             "logs": LogModal,
-            "finished": Finished,
             }
     turn_count = reactive(1)
     board = reactive({})
@@ -261,8 +238,9 @@ class ConnectFour(App):
 
     class RunMessage(Message):
         """TUI message to set Run state and initialize users"""
-        def __init__(self, users: Users) -> None:
+        def __init__(self, users: Users, board) -> None:
             self.users = users
+            self.board = board
             super().__init__()
 
     class StatusMessage(Message):
@@ -279,6 +257,12 @@ class ConnectFour(App):
         def __init__(self, winner_host, winner_port, board):
             self.winner_host = winner_host
             self.winner_port = winner_port
+            self.board = board
+            super().__init__()
+
+    class DrawMessage(Message):
+        """TUI game draw message"""
+        def __init__(self, board):
             self.board = board
             super().__init__()
 
@@ -312,7 +296,11 @@ class ConnectFour(App):
         self.switch_mode("waiting")
 
     def on_connect_four_status_message(self, message: StatusMessage) -> None:
-        game = self.query_one(Game)
+        try:
+            game = self.query_one(Game)
+        except NoMatches:
+            self.pop_screen()
+            game = self.query_one(Game)
         self.logger.debug("received status message")
         self.turn_count = message.turn_count
         self.board = message.board
@@ -321,10 +309,14 @@ class ConnectFour(App):
         self.query_one(GameStatus).who = self.users.get_mover_name(message.mover_host, message.mover_port)
 
     def on_connect_four_winner_message(self, message: WinnerMessage) -> None:
+        try:
+            game = self.query_one(Game)
+        except NoMatches:
+            self.pop_screen()
+            game = self.query_one(Game)
         self.logger.info("Game won!, setting finished")
         for button in self.query(ColumnButton):
             button.disabled = True
-        game = self.query_one(Game)
         self.board = message.board
         for loc, value in self.board.items():
             game.color_cell(loc[0], loc[1], value)
@@ -333,7 +325,24 @@ class ConnectFour(App):
         status.who = f"{winner}!"
         status.status = "The Winner is: "
         status.exit_msg = "Press 'q' to quit"
-        # self.switch_mode("finished")
+
+    def on_connect_four_draw_message(self, message: DrawMessage) -> None:
+        try:
+            game = self.query_one(Game)
+        except NoMatches:
+            self.pop_screen()
+            game = self.query_one(Game)
+        self.logger.info("Game was a draw, setting finished")
+        for button in self.query(ColumnButton):
+            button.disabled = True
+        self.board = message.board
+        for loc, value in self.board.items():
+            game.color_cell(loc[0], loc[1], value)
+        status = self.query_one(GameStatus)
+        status.who = ""
+        status.status = "The game was a draw!"
+        status.exit_msg = "Press 'q' to quit"
+
 
 
     def on_connect_four_pregame_message(self, message: PregameMessage) -> None:
@@ -349,6 +358,11 @@ class ConnectFour(App):
         self.users = message.users
         await self.switch_mode("game")
         self.query_one(GameStatus).who = self.users.first.name
+        self.board = message.board
+        game = self.query_one(Game)
+        for loc, value in self.board.items():
+            game.color_cell(loc[0], loc[1], value)
+
 
 
     def on_mount(self) -> None:

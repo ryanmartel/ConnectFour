@@ -38,6 +38,18 @@ class Action:
         data["board"] = data_board
         return self.serialize(data)
 
+    def game_draw(self, board):
+        data = {
+                "broadcast": "game_draw",
+                "board": {}
+                }
+        data_board = {}
+        for loc, value in board.items():
+            data_board[f"{loc[0]} {loc[1]}"] = value
+        data["board"] = data_board
+        return self.serialize(data)
+
+
     def connection_start(self, addr):
         data = {
                 "broadcast": "connection_status",
@@ -77,12 +89,13 @@ class Action:
                 }
         return self.serialize(data)
 
-    def set_run(self, first_player, users):
+    def set_run(self, first_player, users, board):
         data = {
                 "broadcast": "state",
                 "state": "run",
                 "first_player_host": first_player.host,
                 "first_player_port": first_player.port,
+                "board": {},
                 }
         for index, (_, user) in enumerate(users.connected_users.items()):
             data[f"user{index}"] = {
@@ -91,6 +104,10 @@ class Action:
                     "name": user.name,
                     "value": user.value
                     }
+        data_board = {}
+        for loc, value in board.items():
+            data_board[f"{loc[0]} {loc[1]}"] = value
+        data["board"] = data_board
         return self.serialize(data)
 
 

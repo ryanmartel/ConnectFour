@@ -18,6 +18,11 @@ LogModal {
     align: center middle;
 }
 
+GameStatus {
+    align: center middle;
+    content-align: center middle;
+}
+
 #logmodal {
     width: 80%;
     height: 80%;
