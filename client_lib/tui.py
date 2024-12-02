@@ -8,6 +8,7 @@ from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import ModalScreen, Screen
+from textual.validation import Length
 from textual.widget import Widget
 from textual.widgets import Button, Footer, Header, Input, Label, Log, Static
 
@@ -44,7 +45,12 @@ class Pregame(Screen):
 
     def compose(self) -> ComposeResult:
         yield Vertical(
-            Input(placeholder="Enter your desired name", max_length=10, id="input"),
+            Input(placeholder="Enter your desired name",
+                  validators=[
+                      Length(minimum=1, maximum=10)
+                      ],
+                  id="input"
+                  ),
             Label("Press 'Enter' to continue", id="hint"),
             id="dialog",
             )
@@ -292,6 +298,8 @@ class ConnectFour(App):
             self.logger.error(message.line)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
+        if not event.validation_result.is_valid:
+            return
         self.action_name(event.value)
         self.switch_mode("waiting")
 
