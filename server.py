@@ -77,33 +77,58 @@ class Server:
         self.handler.new_player_connected(addr)
 
     def receive(self, sock) -> None:
-
-        bmsg_len = sock.recv(4)
+        """Receive loop for the server.
+        Managed by selector"""
+        bmsg_len = b""
+        chunk = sock.recv(4)
         # Client has closed a connection
-        if not bmsg_len:
-            self.logger.info(f'Client at {self.connected_clients.get(sock)} closed connection')
-            addr = self.connected_clients.pop(sock)
-            self.read_sel.unregister(sock)
-            self.write_sel.unregister(sock)
-            self.handler.remove_player(addr)
+        if not chunk:
+            self.closed_connection(sock)
             return
+
+        bmsg_len += chunk
+        # Ensure all 4 bytes have been read
+        while (len(bmsg_len) != 4):
+            chunk = sock.recv(4-len(bmsg_len))
+            if not chunk:
+                self.closed_connection(sock)
+                return
+            bmsg_len += chunk
 
         msg_len = struct.unpack('<i', bmsg_len)[0]
-        msg = sock.recv(msg_len).decode("utf-8")
+        msg = ""
+        chunk = sock.recv(msg_len).decode("utf-8")
         # Client has closed a connection
-        if not msg:
-            self.logger.info(f'Client at {self.connected_clients.get(sock)} closed connection')
-            addr = self.connected_clients.pop(sock)
-            self.read_sel.unregister(sock)
-            self.write_sel.unregister(sock)
-            self.handler.remove_player(addr)
+        if not chunk:
+            self.closed_connection(sock)
             return
+
+        msg += chunk
+        # Ensure the full message has been received
+        while (len(msg) != msg_len):
+            chunk = sock.recv(msg_len-len(msg)).decode("utf-8")
+            if not chunk:
+                self.closed_connection(sock)
+                return
+            msg += chunk
 
         json_msg = json.loads(msg)
         self.logger.debug(f'Received {json_msg} from client at {self.connected_clients.get(sock)}')
         self.handler.handle_message(json_msg, sock)
 
-    def run(self):
+    def closed_connection(self, sock) -> None:
+        """When an empty message was read on a ready socket.
+        The client has closed the connection, and it should be removed
+        from server"""
+        self.logger.info(f'Client at {self.connected_clients.get(sock)} closed connection')
+        addr = self.connected_clients.pop(sock)
+        self.read_sel.unregister(sock)
+        self.write_sel.unregister(sock)
+        self.handler.remove_player(addr)
+
+
+    def run(self) -> None:
+        """Main loop for server. Manages selectors"""
         self.start_server()
         self.logger.info("Server is initialized")
         while True:
@@ -128,4 +153,7 @@ if __name__ == '__main__':
         server.run()
     except KeyboardInterrupt:
         print('Interrupt signal received, shutting down')
+        server.shutdown()
+    except Exception as e:
+        print('Unexpected error has occured, shutting down')
         server.shutdown()

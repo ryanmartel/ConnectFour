@@ -1,6 +1,5 @@
 import logging
 import struct
-import sys
 import argparse
 
 import socket
@@ -16,20 +15,28 @@ from client_lib.message_handler import MessageHandler
 
 class Client:
 
-    def __init__(self, log_level, addr):
+    def __init__(self, log_level, addr) -> None:
+        """Initialize client and connect to server at given address
+        Logger is configured later as part of TUI"""
+
+        # Logging
         self.logger = logging.getLogger('CONNECT-FOUR CLIENT')
         self.logger.setLevel(log_level)
 
+        # Selector
         self.addr = addr
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sel = selectors.DefaultSelector()
 
+        # Sending actions, UI, nad receiving handler
         self.action = Action(self.logger)
         self.ui = ConnectFour(self.sock, self.logger)
         self.handler = MessageHandler(self.logger, self.ui, self.sock)
 
 
-    def connect(self):
+    def connect(self) -> None:
+        """Connect to the server and start the receiving thread
+        Start the UI (BLOCKING)"""
         self.logger.info(f"Connecting to host: {self.addr[0]}, port: {self.addr[1]}")
         # Start receiving thread
         rec = threading.Thread(target=self.receive)
@@ -38,32 +45,61 @@ class Client:
         # send connection message to server
         self.sock.sendall(self.action.connect())
 
-        self.ui.run()
+        exit_val = self.ui.run()
         # UI interface has exited, shutdown all threads.
-        os._exit(0)
+        if exit_val is None:
+            os._exit(0)
+        else:
+            rec.join()
+            print('Server connection was lost! exiting...')
 
-    def shutdown(self):
+
+    def shutdown(self) -> None:
+        """Shutdown the client."""
         self.logger.info("Shutting down client")
         self.sock.close()
         os._exit(0)
 
 
-    def receive(self):
+    def receive(self) -> None:
+        """Receive loop for the client.
+        Ran in separate thread"""
         while True:
-            bmsg_len = self.sock.recv(4)
-            if not bmsg_len:
-                print(f'Server connection was lost! exiting...')
-                os._exit(1)
+            bmsg_len = b""
+            chunk = self.sock.recv(4)
+            if not chunk:
+                self.closed_connection()
+            bmsg_len += chunk
+            # Ensure all 4 bytes have been read
+            while (len(bmsg_len) != 4):
+                chunk = self.sock.recv(4-len(bmsg_len))
+                if not chunk:
+                    self.closed_connection()
+                bmsg_len += chunk
 
             msg_len = struct.unpack('<i', bmsg_len)[0]
-            msg = self.sock.recv(msg_len).decode("utf-8")
+            msg = ""
+            chunk = self.sock.recv(msg_len).decode("utf-8")
             # Server has unexpectadly closed
-            if not msg:
-                print(f'Server connection was lost! exiting...')
-                os._exit(1)
+            if not chunk:
+                self.closed_connection()
+            msg += chunk
+            # Ensure the full message has been received
+            while (len(msg) != msg_len):
+                chunk = self.sock.recv(msg_len-len(msg)).decode("utf-8")
+                if not chunk:
+                    self.closed_connection()
+                msg += chunk
             
             json_msg = json.loads(msg)
             self.handler.handle_message(json_msg)
+
+    def closed_connection(self) -> None:
+        """When an empty message was read on socket.
+        Server has closed the connection, and this client should exit"""
+        self.ui.exit(True)
+        exit()
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

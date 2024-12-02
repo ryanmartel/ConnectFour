@@ -272,6 +272,11 @@ class ConnectFour(App):
             self.board = board
             super().__init__()
 
+    class ExitMessage(Message):
+        """TUI exit message when server failure occurs"""
+        def __init__(self):
+            super().__init__()
+
 
     def __init__(self, sock, logger) -> None:
         super().__init__()
@@ -371,7 +376,9 @@ class ConnectFour(App):
         for loc, value in self.board.items():
             game.color_cell(loc[0], loc[1], value)
 
-
+    def on_connect_four_exit_message(self, message: ExitMessage) -> None:
+        self.logger.debug("exit messgae")
+        self.exit(True)
 
     def on_mount(self) -> None:
         self.switch_mode("waiting")
