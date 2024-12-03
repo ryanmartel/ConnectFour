@@ -156,5 +156,4 @@ if __name__ == '__main__':
         server.shutdown()
     except Exception as e:
         print('Unexpected error has occured, shutting down')
-        print(f"{e}")
         server.shutdown()

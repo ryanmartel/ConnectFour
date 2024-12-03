@@ -1,19 +1,33 @@
 import json
 import struct
 
+from typing import TypeAlias
+
+from server_lib.board import Board
+from server_lib.users import User, Users
+
 
 class Action:
+    """ Defines actions which are sent to the client(s). These
+    actions are sent using the application message protocol, and define the
+    output of the server-side Client/Server API"""
+
+    Address: TypeAlias = tuple[str, int]
 
     def __init__(self, logger):
         self.logger = logger
 
-    def serialize(self, msg):
+    def serialize(self, msg: dict) -> bytes:
+        """Create a byte serialization of the message. message contents
+        are encoded in json and prefixed by a fixed size length integer to
+        encode the total message size"""
         bjson = bytes(json.dumps(msg), encoding="utf-8")
         return struct.pack(f'<i{len(bjson)}s', len(bjson), bjson)
 
-    # Requests
-    # play_count gives the current game counter. this ensures consistency in plays
-    def game_status(self, turn_count, expected_mover, board):
+    def game_status(self, turn_count: int, expected_mover: User, board: Board) -> bytes:
+        """Sends the current gameplay status to the clients.
+        Any movements made by a player other than expected or by 
+        a client with a different turn count will be rejected."""
         data = {
                 "broadcast": "game_status",
                 "turn_count": turn_count,
@@ -26,7 +40,8 @@ class Action:
         data["board"] = data_board
         return self.serialize(data)
 
-    def game_win(self, board, winner):
+    def game_win(self, board: Board, winner: User) -> bytes:
+        """Sends the game winner message to the clients"""
         data = {
                 "broadcast": "game_win",
                 "winner_host": winner.host,
@@ -38,7 +53,8 @@ class Action:
         data["board"] = data_board
         return self.serialize(data)
 
-    def game_draw(self, board):
+    def game_draw(self, board: Board) -> bytes:
+        """Sends the game draw message to the clients"""
         data = {
                 "broadcast": "game_draw",
                 "board": {}
@@ -50,7 +66,8 @@ class Action:
         return self.serialize(data)
 
 
-    def connection_start(self, addr):
+    def connection_start(self, addr: Address) -> bytes:
+        """Sends notification that a new client has connected"""
         data = {
                 "broadcast": "connection_status",
                 "host": addr[0],
@@ -59,7 +76,8 @@ class Action:
                 }
         return self.serialize(data)
 
-    def connection_end(self, addr):
+    def connection_end(self, addr: Address) -> bytes:
+        """Sends notification that a client has disconnected."""
         data = {
                 "broadcast": "connection_status",
                 "host": addr[0],
@@ -68,14 +86,9 @@ class Action:
                 }
         return self.serialize(data)
 
-    def player_ready(self, num_waiting_on):
-        data = {
-                "broadcast": "ready_status",
-                "num_waiting_on": num_waiting_on
-                }
-        return self.serialize(data)
-
-    def set_waiting(self, disconnect: bool):
+    def set_waiting(self, disconnect: bool) -> bytes:
+        """Sets the game state to waiting. If this was caused by a disconnection
+        the disconnect field will be 1. otherwise it is 0"""
         data = {
                 "broadcast": "state",
                 "state": "waiting",
@@ -85,14 +98,17 @@ class Action:
             data["disconnect"] = 1
         return self.serialize(data)
 
-    def set_pregame(self):
+    def set_pregame(self) -> bytes:
+        """Sets the game state to pregame"""
         data = {
                 "broadcast": "state",
                 "state": "pregame"
                 }
         return self.serialize(data)
 
-    def set_run(self, first_player, users, board):
+    def set_run(self, first_player: User, users: Users, board: Board) -> bytes:
+        """Sets the game state to run. gives first player expected information and
+        all connected users information."""
         data = {
                 "broadcast": "state",
                 "state": "run",
@@ -113,18 +129,10 @@ class Action:
         data["board"] = data_board
         return self.serialize(data)
 
-
-    def finish_game(self, winner):
-        data = {
-                "broadcast": "state",
-                "state": "finished",
-                "winner": winner
-                }
-        return self.serialize(data)
-
-    # Responses
-
-    def move(self, err):
+    def move(self, err: str|None) -> bytes:
+        """The response to a client for making a move.
+        The rejected move message is used to pass error information to
+        the client to indicate the reason for failed move."""
         if err is None:
             data = {
                     "result": "move",
@@ -138,13 +146,8 @@ class Action:
                     }
         return self.serialize(data)
 
-    def ping(self):
-        data = {
-                "result": "pong"
-                }
-        return self.serialize(data)
-
-    def connection_refuse(self, reason):
+    def connection_refuse(self, reason: str) -> bytes:
+        """Connection refused response and reason for refusal"""
         data = {
                 "result": "connection",
                 "status": "refused",
@@ -152,20 +155,23 @@ class Action:
                 }
         return self.serialize(data)
 
-    def connection(self):
+    def connection(self) -> bytes:
+        """Connection connected sucessfully response"""
         data = {
                 "result": "connection",
                 "status": "connected",
                 }
         return self.serialize(data)
 
-    def ok(self):
+    def ok(self) -> bytes:
+        """Generic Ok response message"""
         data = {
                 "result": "ok"
                 }
         return self.serialize(data)
 
-    def err(self, err):
+    def err(self, err: str) -> bytes:
+        """Generic Error response message"""
         data = {
                 "result": "err",
                 "error": err

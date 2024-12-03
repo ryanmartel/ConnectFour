@@ -1,11 +1,17 @@
-class Board:
+from logging import Logger
 
-    def __init__(self, logger):
+
+class Board:
+    """Server-side representation of the game-play board"""
+
+    def __init__(self, logger: Logger) -> None:
         self.column_tracker = self.new_column_tracker()
         self.board = self.new_board()
         self.logger = logger
 
-    def next_row_in_column(self, column):
+    def next_row_in_column(self, column: int) -> int|None:
+        """Gives the next row to be played in the given column.
+        Once the last row for the column has been played, returns None"""
         ret_row = self.column_tracker.get(column, 6)
         # Above the board height
         if ret_row == 6:
@@ -13,19 +19,29 @@ class Board:
         self.column_tracker[column] = ret_row + 1
         return ret_row
 
-    def move(self, column, row, value):
+    def move(self, column: int, row: int, value: int) -> None:
+        """Assigns the user's value to the given location on the board"""
         self.logger.info(f"Making move at ({column}, {row}) => {value}")
         self.board[(column, row)] = value
 
-    def get_value(self, column, row):
+    def get_value(self, column: int, row: int) -> int:
+        """Retrieve the current value at the input position"""
         return self.board[(column, row)]
 
-    def clean(self):
+    def clean(self) -> None:
+        """Wipe the board of all values != 0"""
         self.column_tracker = self.new_column_tracker()
         self.board = self.new_board()
         self.logger.info("Cleaned board")
 
-    def new_column_tracker(self):
+    def items(self):
+        """Wrapper over underlying dictionary method"""
+        return self.board.items()
+
+    def new_column_tracker(self) -> dict:
+        """Create column tracker used to determine which
+        row is currently being played, or determine out of bounds 
+        placement"""
         return {
                 0: 0,
                 1: 0,
@@ -36,7 +52,8 @@ class Board:
                 6: 0,
                 }
 
-    def new_board(self):
+    def new_board(self) -> dict:
+        """Create new board initialized to 0's"""
         return {
                 (0,0): 0,
                 (0,1): 0,

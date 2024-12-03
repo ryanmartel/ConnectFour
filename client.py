@@ -121,6 +121,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("Interrupt signal received, shutting down")
         client.shutdown()
-    except Exception as e:
-        print(f"Uncaught exception: {e}")
+    except Exception:
+        print("Unexpected error has occured. Exiting application.")
 

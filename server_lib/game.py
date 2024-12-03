@@ -1,6 +1,12 @@
-from server_lib.users import NotEnoughUsersError, UserNotFoundError
+from typing import TypeAlias
+from server_lib.users import NotEnoughUsersError, User, UserNotFoundError
 
 class Game:
+    """The server's implementation of the game being played.
+    The game is managed through various states which determine what is being
+    currently expected from users. The gameplay occurs in the 'run' state."""
+
+    Address: TypeAlias = tuple[str, int]
 
     def __init__(self, logger, board, users):
         self.logger = logger
@@ -16,15 +22,19 @@ class Game:
         # Player who won the game
         self.winner = None
 
-    def get_turn_count(self):
+    def get_turn_count(self) -> int:
         return self.turn_count
 
-    def is_max_turn(self):
+    def is_max_turn(self) -> bool:
+        """At max turn count a draw will occur"""
         if self.turn_count == 42:
             return True
         return False
 
-    def setWaiting(self):
+    def setWaiting(self) -> None:
+        """Sets the game back to the waiting state. This
+        is also responsible for cleaning all stateful data prior to the 
+        next game"""
         self.state = "waiting"
         self.first_player = None
         self.whos_move = None
@@ -34,7 +44,8 @@ class Game:
         self.users.clean_connected()
         self.logger.info("State change: waiting")
 
-    def setPregame(self):
+    def setPregame(self) -> None:
+        """Sets the game to the pregame state to gather user's names"""
         if self.state == "waiting" and self.users.num_players() == 2:
             self.logger.info("State change: pregame")
             self.state = "pregame"
@@ -42,7 +53,9 @@ class Game:
             self.logger.error(f"Invalid state change to pregame curr state: {self.state}, number of users: {self.users.num_players()}")
             raise InvalidStateTransferError
             
-    def setRun(self):
+    def setRun(self) -> None:
+        """Sets the game to the run state, starting the game. Also
+        determines who the first player is at this time"""
         if self.state == "pregame" and self.users.are_names_set():
             self.logger.info("State change: run")
             self.state = "run"
@@ -57,7 +70,8 @@ class Game:
             self.logger.error(f"Invalid state change to run curr state: {self.state}")
             raise InvalidStateTransferError
 
-    def setFinished(self, winner):
+    def setFinished(self, winner: User|None) -> None:
+        """Ends the game. If the game is a draw, winner is set to None"""
         if self.state == "run":
             self.logger.info("State change: Finished")
             self.state = "finished"
@@ -65,12 +79,14 @@ class Game:
         else:
             self.logger.error(f"Invalid state change to finished curr state: {self.state}")
 
-    def isFinished(self):
+    def isFinished(self) -> bool:
+        """Get if the game is in the finished state"""
         if self.state == "finished":
             return True
         return False
 
-    def check_win_condition(self, column, row):
+    def check_win_condition(self, column: int, row: int) -> bool:
+        """Checks the last play to see if the game was won on this turn"""
         # Which player value are we checking
         value = self.board.get_value(column, row)
         self.logger.debug(f"value this turn {value}")
@@ -161,11 +177,14 @@ class Game:
             return True
         return False
 
-    # TODO: Fill in error conditions
-    def move(self, addr, column, turn_count):
+    def move(self, addr: Address, column: int, turn_count: int) -> None:
+        """Makes a move at the given column. Raises exceptions on error conditions related 
+        to gameplay. On successful move, the game is checked for winning conditions and the turn
+        counter is incremented"""
         try: 
             user = self.users.get_user(addr)
-            self.logger.debug(f"Who's move: {self.whos_move.host}, {self.whos_move.port}")
+            if self.whos_move is not None:
+                self.logger.debug(f"Who's move: {self.whos_move.host}, {self.whos_move.port}")
         except UserNotFoundError:
             raise UserNotFoundError
         if user != self.whos_move:
@@ -186,13 +205,16 @@ class Game:
             self.logger.error("Invalid row")
             raise InvalidRowError
         self.board.move(column, row, user.value)
+        # Check if game won
         self.game_won = self.check_win_condition(column, row)
         if self.game_won:
             self.logger.info("Game won")
             self.setFinished(user)
+        # At max turn, the game must be a draw
         elif self.is_max_turn():
             self.logger.info("Game is a Draw")
             self.setFinished(None)
+        # Increment turn-count and continue game
         else:
             self.turn_count += 1
             self.whos_move = self.users.next_turn(user)
