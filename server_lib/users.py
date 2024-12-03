@@ -42,8 +42,6 @@ class Users:
     Address: TypeAlias = tuple[str, int]
     
     def __init__(self, logger: Logger) -> None:
-        # Key: user addr
-        # Value: User
         self.connected_users = {}
         self.logger = logger
 

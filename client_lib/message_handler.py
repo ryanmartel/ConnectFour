@@ -70,7 +70,7 @@ class MessageHandler:
     def handle_move_rejected(self, message: dict) -> None:
         """Response from server that move was rejected. Hand error message
         over to the TUI"""
-        err = message.get("error")
+        err = message["error"]
         self.ui.post_message(self.ui.MoveErrorMessage(err))
 
     def handle_game_draw(self, message: dict) -> None:
@@ -80,7 +80,7 @@ class MessageHandler:
 
     def handle_game_win(self, message: dict) -> None:
         """Message from server that a player has won the game."""
-        winner_host = message.get("winner_host")
+        winner_host = message["winner_host"]
         winner_port = int(message["winner_port"])
         board = self.format_board(message["board"])
         self.ui.post_message(self.ui.WinnerMessage(winner_host,winner_port,board))
@@ -119,7 +119,7 @@ class MessageHandler:
 
     def handle_game_status(self, message: dict) -> None:
         turn_count = int(message["turn_count"])
-        mover_host = message.get("expected_mover_host")
+        mover_host = message["expected_mover_host"]
         mover_port = int(message["expected_mover_port"])
         board = self.format_board(message["board"])
         self.ui.post_message(self.ui.StatusMessage(turn_count,mover_host,mover_port,board))
