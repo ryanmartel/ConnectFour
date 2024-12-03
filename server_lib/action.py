@@ -1,4 +1,5 @@
 import json
+from logging import Logger
 import struct
 
 from typing import TypeAlias
@@ -14,7 +15,7 @@ class Action:
 
     Address: TypeAlias = tuple[str, int]
 
-    def __init__(self, logger):
+    def __init__(self, logger: Logger) -> None:
         self.logger = logger
 
     def serialize(self, msg: dict) -> bytes:
