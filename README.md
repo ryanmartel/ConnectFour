@@ -1,7 +1,9 @@
-# Connect-Four Game Example
+# Connect-Four Game
 
 This is a simple Connect-Four game implemented using Python and sockets. The GUI is provided through a textual terminal interface (TUI)
-A requirements.txt file is provided with all dependencies needed to run the client and server.
+A requirements.txt file is provided with all dependencies needed to run the client and server. Python version of at least 3.10 is required. 
+The python-version.txt file included in the directory includes this version number. This is the python version that was tested on the 
+CSU dept machines.
 
 ## How to Run
 **SERVER**  
@@ -15,6 +17,13 @@ Where host is the host ip addr or DNS of the running server and port is the port
 **Additional options**  
 Both client and server support `-h` for help and `--loglevel [loglevel]` to change the minimum level event to be logged. The default
 log level is 'INFO', available options are 'DEBUG', 'INFO', 'WARNING', 'ERROR'.
+
+**Additional Information**  
+On the CSU dept machines, the highest python interpreter available is 3.10. For running on the CSU dept machines this is the 
+only version of the interpreter that will work. To ensure the 3.10 interpreter is available, load the module using  
+`module load python/bundle-3.10`  
+This module and interpreter do not support the `python` command, and instead the server and client will have to be started 
+using the `python3` command with the same options.
 
 ## Runtime Mechanics
 
@@ -53,7 +62,14 @@ there are two players connected, the game will move to the Pregame state.
 
 ## Additional Information
 
-### Security/Risk Evaluation
+### Security/Risk Evaluation  
+Some security/risks of this application  
+1. Unencrypted traffic. All information is sent over plaintext for anyone to intercept and read. This is not too concerning
+   for this application since the data is not sensitive.
+2. DoS attacks. The server does not limit rate of connections and could be flooded with attempted connections causing the
+   server to be overwhelmed.
+3. Modified requests. The server could be given modified requests following the correct protocol to place the game in an unexpected state or
+   crash the server.
 
 **Technologies used:**
 * Python
