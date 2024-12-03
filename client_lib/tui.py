@@ -247,6 +247,7 @@ class ListHandler(logging.Handler):
 class ConnectFour(App):
     """The main TUI application"""
 
+    ENABLE_COMMAND_PALETTE = False
     TITLE = "Connect Four"
     CSS_PATH = "./styles/styles.css"
     MODES = {
