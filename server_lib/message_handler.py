@@ -21,7 +21,10 @@ class MessageHandler:
                 self.respond(self.action.ping(), sock)
             if action == "move":
                 res = self.move(message, self.clients.get(sock))
-                self.respond(res, sock)
+                if res is None:
+                    self.broadcast(self.action.move(None))
+                else:
+                    self.respond(res, sock)
                 if self.game.isFinished():
                     winning_user = self.game.winner
                     if winning_user is None:
@@ -60,11 +63,11 @@ class MessageHandler:
         self.broadcast(self.action.connection_end(addr))
         if not self.game.isFinished():
             self.game.setWaiting()
-            self.broadcast(self.action.set_waiting())
+            self.broadcast(self.action.set_waiting(True))
         else:
             if self.users.num_players() == 0:
                 self.game.setWaiting()
-                self.broadcast(self.action.set_waiting())
+                self.broadcast(self.action.set_waiting(False))
 
     
     def set_name(self, msg, addr):
@@ -86,19 +89,19 @@ class MessageHandler:
         turn_count = msg.get("turn-count")
         try:
             self.game.move(addr, int(column), int(turn_count))
-            res = self.action.ok()
+            res = None
         except UserNotFoundError:
-            res = self.action.err("User with this address was not found")
+            res = self.action.move("User with this address was not found")
         except InvalidOrderError:
-            res = self.action.err("It is not this users turn")
+            res = self.action.move("It is not your turn")
         except OutOfDateError:
-            res = self.action.err("Stale data used for turn")
+            res = self.action.move("Stale data used for turn, try again.")
         except InvalidColumnError:
-            res = self.action.err("Column out of range")
+            res = self.action.move("Column out of range")
         except InvalidRowError:
-            res = self.action.err("Column is full")
+            res = self.action.move("Column is full")
         except ValueError:
-            res = self.action.err("Invalid value passed")
+            res = self.action.move("Invalid value passed")
         return res
 
     def respond(self, msg, sock):

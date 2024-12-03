@@ -23,6 +23,12 @@ class MessageHandler:
 
     def process_result(self, result, message):
         if result == "move":
+            if message.get("move_status") == "rejected":
+                self.handle_move_rejected(message)
+            else:
+                self.handle_move_accepted()
+            return
+        if result == "err":
             return
         if result == "connection":
             # Exceeds max allowed player count
@@ -45,6 +51,13 @@ class MessageHandler:
         if broadcast == "game_draw":
             self.handle_game_draw(message)
 
+    def handle_move_accepted(self):
+        self.ui.post_message(self.ui.MoveMessage())
+
+    def handle_move_rejected(self, message):
+        err = message.get("error")
+        self.ui.post_message(self.ui.MoveErrorMessage(err))
+
     def handle_game_draw(self, message):
         board = self.format_board(message.get("board"))
         self.ui.post_message(self.ui.DrawMessage(board))
@@ -59,7 +72,12 @@ class MessageHandler:
         if state == "pregame":
             self.ui.post_message(self.ui.PregameMessage())
         elif state == "waiting":
-            self.ui.post_message(self.ui.WaitingMessage())
+            disconnect_status = int(message.get("disconnect"))
+            if disconnect_status == 1:
+                self.ui.post_message(self.ui.WaitingMessage(True))
+            else:
+                self.ui.post_message(self.ui.WaitingMessage(False))
+
         elif state == "run":
             localAddr = self.sock.getsockname()
             user0 = message.get("user0")

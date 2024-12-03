@@ -75,11 +75,14 @@ class Action:
                 }
         return self.serialize(data)
 
-    def set_waiting(self):
+    def set_waiting(self, disconnect: bool):
         data = {
                 "broadcast": "state",
-                "state": "waiting"
+                "state": "waiting",
+                "disconnect": 0
                 }
+        if disconnect:
+            data["disconnect"] = 1
         return self.serialize(data)
 
     def set_pregame(self):

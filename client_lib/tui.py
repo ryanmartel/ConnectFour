@@ -30,13 +30,21 @@ class Waiting(Screen):
         """Compose the waiting screen"""
         yield Header()
         yield Vertical(
-                Label("waiting on other player...", id="waiting_on"),
-                id="dialog"
+                # Label("waiting on other player...", id="waiting_on"),
+                # id="dialog"
+                WaitingStatus(id="dialog")
                 )
         yield Footer()
 
     def action_logs(self) -> None:
         self.app.push_screen(LogModal())
+
+class WaitingStatus(Widget):
+    """Container for game status items"""
+    disconnect = reactive("Waiting on other player...")
+
+    def render(self) -> str:
+        return f"{self.disconnect}"
 
 class Pregame(Screen):
     """The pregame screen to collect username"""
@@ -195,10 +203,11 @@ class GameStatus(Widget):
     """Container for game status items"""
     status = reactive("Next Turn: ")
     who = reactive("")
+    err_msg = reactive("")
     exit_msg = reactive("")
 
     def render(self) -> str:
-        return f"{self.status}{self.who}\n{self.exit_msg}"
+        return f"{self.status}{self.who}\n{self.exit_msg}\n{self.err_msg}"
 
 
 
@@ -239,7 +248,8 @@ class ConnectFour(App):
 
     class WaitingMessage(Message):
         """TUI message to set Waiting state"""
-        def __init__(self) -> None:
+        def __init__(self, disconnect_status: bool) -> None:
+            self.disconnect_status = disconnect_status
             super().__init__()
 
     class RunMessage(Message):
@@ -272,9 +282,15 @@ class ConnectFour(App):
             self.board = board
             super().__init__()
 
-    class ExitMessage(Message):
-        """TUI exit message when server failure occurs"""
+    class MoveMessage(Message):
+        """TUI move success message"""
         def __init__(self):
+            super().__init__()
+
+    class MoveErrorMessage(Message):
+        """TUI move error message for user"""
+        def __init__(self, err):
+            self.err = err
             super().__init__()
 
 
@@ -302,11 +318,13 @@ class ConnectFour(App):
         elif message.severity == "error":
             self.logger.error(message.line)
 
-    def on_input_submitted(self, event: Input.Submitted) -> None:
+    async def on_input_submitted(self, event: Input.Submitted) -> None:
         if not event.validation_result.is_valid:
             return
         self.action_name(event.value)
-        self.switch_mode("waiting")
+        await self.switch_mode("waiting")
+        status = self.query_one(WaitingStatus) 
+        status.disconnect = "Waiting on other player..."
 
     def on_connect_four_status_message(self, message: StatusMessage) -> None:
         try:
@@ -362,9 +380,17 @@ class ConnectFour(App):
         self.logger.info("TUI setting pregame")
         self.switch_mode("pregame")
 
-    def on_connect_four_waiting_message(self, message: WaitingMessage) -> None:
+    async def on_connect_four_waiting_message(self, message: WaitingMessage) -> None:
         self.logger.info("TUI setting waiting")
-        self.switch_mode("waiting")
+        disconnect_status = message.disconnect_status
+        await self.switch_mode("waiting")
+
+        status = self.query_one(WaitingStatus) 
+        if disconnect_status:
+            status.disconnect = "The other player has disconnected. Waiting for another player"
+        else:
+            status.disconnect = "Waiting on other player..."
+
 
     async def on_connect_four_run_message(self, message: RunMessage) -> None:
         self.logger.info("TUI setting run")
@@ -376,9 +402,25 @@ class ConnectFour(App):
         for loc, value in self.board.items():
             game.color_cell(loc[0], loc[1], value)
 
-    def on_connect_four_exit_message(self, message: ExitMessage) -> None:
-        self.logger.debug("exit messgae")
-        self.exit(True)
+    def on_connect_four_move_error_message(self, message: MoveErrorMessage) -> None:
+        try:
+            game = self.query_one(Game)
+        except NoMatches:
+            self.pop_screen()
+        self.logger.info(f"Error on move: {message.err}")
+        status = self.query_one(GameStatus)
+        status.err_msg = message.err
+
+    def on_connect_four_move_message(self, message: MoveMessage) -> None:
+        try:
+            game = self.query_one(Game)
+        except NoMatches:
+            self.pop_screen()
+        self.logger.debug("Sucessful move response")
+        status = self.query_one(GameStatus)
+        status.err_msg = ""
+
+
 
     def on_mount(self) -> None:
         self.switch_mode("waiting")
