@@ -72,6 +72,19 @@ Some security/risks of this application
 3. Modified requests. The server could be given modified requests following the correct protocol to place the game in an unexpected state or
    crash the server.
 
+### Roadmap on where I would take project from here
+Features that I would like to implement or improve on are:
+* Cleaner UI. With more work on the CSS files, the board could look a lot nicer.
+* Implement chat for players. It would be nice for players to communicate with each other during the game.
+* Implement a single-player option. Connect four is a well known space for search-based AI algorithms such as alpha-beta search and expectimax.
+  It would be a great exercise to implement a basic AI player option for the game.
+### Retrospective on overall project
+1. **What went right** The UI library that I chose (Textual) was a significant learning investment, but I believe that it paid off.
+   The library had built-in async support for updating the screen and taking user input, which worked very well when sending messages
+   from a separate thread receiving socket messages. I used the included async support to simplify many of my concurrency issues on
+   the client side.
+2. **What could be improved on** The UI design could be improved on. I did not have the extra time to really tweak the CSS to the point that I was happy with it. I also would have liked to have time to improve the error messages to the client. Right now they appear as a line of text beneath who's turn it is. I would have liked certain serious errors such as server failure to be contained in their own popups so that the user is forced to acknowledge them before the game exits.
+
 **Technologies used:**
 * Python
 * Sockets
